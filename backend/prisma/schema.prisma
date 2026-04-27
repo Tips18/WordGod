@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String             @id @default(uuid())
+  email          String             @unique
+  passwordHash   String
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  authSessions   AuthSession[]
+  readingAttempts ReadingAttempt[]
+  vocabularyEntries VocabularyEntry[]
+}
+
+model AuthSession {
+  id               String   @id @default(uuid())
+  userId           String
+  refreshTokenHash String
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Passage {
+  id             String             @id @default(uuid())
+  examType       String
+  year           Int
+  paper          String
+  questionType   String
+  passageIndex   Int
+  title          String
+  sourceUrl      String
+  sourceDomain   String
+  content        String
+  sentences      Json
+  tokens         Json
+  publishedAt    DateTime
+  readingAttempts ReadingAttempt[]
+  vocabularyContexts VocabularyContext[]
+}
+
+model LexiconEntry {
+  id           String @id @default(uuid())
+  lemma        String @unique
+  surface      String
+  partOfSpeech String
+  definitionCn String
+  inflections  Json
+}
+
+model ReadingAttempt {
+  id               String   @id @default(uuid())
+  userId           String
+  passageId        String
+  selectedTokenIds Json
+  completedAt      DateTime?
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  passage          Passage  @relation(fields: [passageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, passageId])
+}
+
+model VocabularyEntry {
+  id             String              @id @default(uuid())
+  userId         String
+  lemma          String
+  surface        String
+  partOfSpeech   String
+  definitionCn   String
+  markCount      Int
+  lastMarkedAt   DateTime
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contexts       VocabularyContext[]
+
+  @@unique([userId, lemma])
+  @@index([userId, markCount, lastMarkedAt])
+}
+
+model VocabularyContext {
+  id                 String          @id @default(uuid())
+  vocabularyEntryId  String
+  passageId          String
+  sentenceText       String
+  sentenceTranslation String
+  markedAt           DateTime
+  vocabularyEntry    VocabularyEntry @relation(fields: [vocabularyEntryId], references: [id], onDelete: Cascade)
+  passage            Passage         @relation(fields: [passageId], references: [id], onDelete: Cascade)
+
+  @@index([vocabularyEntryId, markedAt])
+}
+
+model CrawlJob {
+  id                String   @id @default(uuid())
+  sourceUrl         String
+  sourceDomain      String
+  status            String
+  rawContent        String
+  normalizedContent String?
+  errorMessage      String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+

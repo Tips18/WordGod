@@ -1,0 +1,15 @@
+{
+  "name": "word-god-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.11.0",
+  "scripts": {
+    "dev:frontend": "corepack pnpm --filter @word-god/contracts build && corepack pnpm --filter frontend dev",
+    "dev:backend": "corepack pnpm --filter @word-god/contracts build && corepack pnpm --filter backend start:dev",
+    "build": "corepack pnpm -r build",
+    "lint": "corepack pnpm -r lint",
+    "test": "corepack pnpm -r test",
+    "test:e2e": "corepack pnpm --filter frontend test:e2e",
+    "format": "corepack pnpm -r format"
+  }
+}
