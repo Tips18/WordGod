@@ -8,6 +8,7 @@
 - `backend/`：NestJS API 服务，当前默认使用内存存储和种子题库运行，同时提供 Prisma/PostgreSQL schema。
 - `packages/contracts/`：前后端共享 DTO、领域类型和常量。
 - `docs/`：产品文档、技术设计、编码规范和迭代记录。
+- `词库/`：考研英语一/二真题 Markdown 资料与来源索引，当前覆盖 2017-2023 年可复用公开来源，2024-2026 年缺失来源记录在 `kaoyan-english-missing-sources.md`。
 
 ## 开发约束
 
@@ -61,3 +62,5 @@ corepack pnpm --filter backend content:normalize
 corepack pnpm --filter backend content:translate
 corepack pnpm --filter backend content:ingest
 ```
+
+`词库/kaoyan-english-source-index.md` 记录了题库资料的来源与转换状态；新增真题资料前先确认来源允许复用，不要把禁止批量抓取或授权不明的内容放入仓库。
