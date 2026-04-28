@@ -13,16 +13,32 @@ import { AppModule } from '../src/app.module';
 describe('AppController (e2e)', () => {
   let app: INestApplication;
 
-  beforeEach(async () => {
-    process.env.WORD_GOD_STORE = 'memory';
+  /**
+   * `createTestApp` 按指定存储模式创建 e2e 测试应用。
+   */
+  async function createTestApp(
+    storeMode: 'memory' | 'unset' = 'memory',
+  ): Promise<INestApplication> {
+    if (storeMode === 'unset') {
+      delete process.env.WORD_GOD_STORE;
+    } else {
+      process.env.WORD_GOD_STORE = storeMode;
+    }
 
     const moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
-    app = moduleFixture.createNestApplication();
-    configureApiApp(app);
-    await app.init();
+    const testApp = moduleFixture.createNestApplication();
+
+    configureApiApp(testApp);
+    await testApp.init();
+
+    return testApp;
+  }
+
+  beforeEach(async () => {
+    app = await createTestApp('memory');
   });
 
   afterEach(async () => {
@@ -42,6 +58,19 @@ describe('AppController (e2e)', () => {
     expect(responseBody.passage.title).not.toBe('Memory and Method');
     expect(responseBody.passage.sourceUrl).not.toContain('example.com');
     expect(responseBody.passage.id).toMatch(/^kaoyan-\d{4}-english-/);
+  });
+
+  it('returns a readable passage when store mode is not configured', async () => {
+    await app.close();
+    app = await createTestApp('unset');
+
+    const response = await request(app.getHttpServer())
+      .get('/reading/passages/random')
+      .expect(200);
+    const responseBody = response.body as ReadingPassageResponse;
+
+    expect(responseBody.passage.id).toMatch(/^kaoyan-\d{4}-english-/);
+    expect(responseBody.tokens.length).toBeGreaterThan(0);
   });
 
   it('allows the frontend dev origin to request passages with credentials', async () => {

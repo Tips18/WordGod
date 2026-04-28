@@ -18,13 +18,13 @@ import { VocabularyService } from './vocabulary/vocabulary.service';
  * `createAppStore` 根据环境变量选择 PostgreSQL 或内存应用存储。
  */
 function createAppStore(prismaService: PrismaService): AppStore {
-  if (process.env.WORD_GOD_STORE === 'memory') {
-    return new InMemoryAppStore({
-      passages: seedPassages,
-    });
+  if (process.env.WORD_GOD_STORE === 'prisma') {
+    return new PrismaAppStore(prismaService);
   }
 
-  return new PrismaAppStore(prismaService);
+  return new InMemoryAppStore({
+    passages: seedPassages,
+  });
 }
 
 /**

@@ -36,7 +36,7 @@
 
 ## 当前实现说明
 
-- API 通过 `WORD_GOD_STORE` 选择存储实现：`prisma` 使用 PostgreSQL，`memory` 使用 `InMemoryAppStore` 和种子题库。
+- API 通过 `WORD_GOD_STORE` 选择存储实现：只有显式设置 `prisma` 时使用 PostgreSQL，未设置或设置为 `memory` 时使用 `InMemoryAppStore` 和种子题库。
 - `backend/src/store/prisma-app.store.ts` 已实现认证、阅读、生词本和内容基础数据的 Prisma 访问，业务服务只依赖 `AppStore` 注入令牌。
 - 前端通过 `packages/contracts/` 共享 DTO 与领域类型，避免重复定义接口结构。
 - 后端默认允许 `localhost:5173`、`127.0.0.1:5173`、`localhost:4173`、`127.0.0.1:4173` 跨源携带 Cookie 访问，其他前端源通过 `CORS_ALLOWED_ORIGINS` 扩展。

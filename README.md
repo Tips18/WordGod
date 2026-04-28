@@ -38,9 +38,10 @@ corepack pnpm dev:backend
 corepack pnpm dev:frontend
 ```
 
-后端会读取仓库根目录 `.env`。`WORD_GOD_STORE=prisma` 时使用 PostgreSQL，需先准备 `DATABASE_URL` 并执行迁移；`WORD_GOD_STORE=memory` 时使用内置考研英语种子段落，适合无数据库本地演示和测试。
+后端会读取仓库根目录 `.env`。未设置 `WORD_GOD_STORE` 或设置为 `memory` 时使用内置考研英语种子段落，适合无数据库本地演示和测试；只有显式设置 `WORD_GOD_STORE=prisma` 时才使用 PostgreSQL，此时需先准备 `DATABASE_URL` 并执行迁移。
 
 ```powershell
+$env:WORD_GOD_STORE="prisma"
 corepack pnpm --filter backend prisma:migrate:dev
 $env:WORD_GOD_STORE="memory"; corepack pnpm dev:backend
 ```
