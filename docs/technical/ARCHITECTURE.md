@@ -14,7 +14,7 @@
 ### 前端
 
 - 路由：`/`、`/auth`、`/vocabulary`、`/vocabulary/:lemma`
-- 主要状态：当前段落、当前选中 token、当前临时标记集合、登录状态、生词列表。
+- 主要状态：当前段落全文、当前选中 token、当前临时标记集合、登录状态、生词列表。
 
 ### 后端
 
@@ -30,13 +30,15 @@
 
 1. 用户请求随机段落。
 2. 后端返回段落元数据、token 列表、句子列表、译文和当前用户已标记状态。
-3. 用户本地切换 token 标记，并同步到 `reading_attempts`。
-4. 用户完成当前段落后，后端结算并更新 `vocabulary_entries` 与 `vocabulary_contexts`。
-5. 前端请求生词本并展示排序结果。
+3. 前端以 `passage.content` 渲染完整英文正文，并将可匹配 token 的词渲染为可点击标记按钮。
+4. 用户本地切换 token 标记，并同步到 `reading_attempts`。
+5. 用户完成当前段落后，后端结算并更新 `vocabulary_entries` 与 `vocabulary_contexts`。
+6. 前端请求生词本并展示排序结果。
 
 ## 当前实现说明
 
 - API 通过 `WORD_GOD_STORE` 选择存储实现：只有显式设置 `prisma` 时使用 PostgreSQL，未设置或设置为 `memory` 时使用 `InMemoryAppStore` 和种子题库。
+- 内存模式的种子题库使用来自 `词库/` 来源的真实考研英语长段落，并为正文单词生成可点击 token。
 - `backend/src/store/prisma-app.store.ts` 已实现认证、阅读、生词本和内容基础数据的 Prisma 访问，业务服务只依赖 `AppStore` 注入令牌。
 - 前端通过 `packages/contracts/` 共享 DTO 与领域类型，避免重复定义接口结构。
 - 后端默认允许 `localhost:5173`、`127.0.0.1:5173`、`localhost:4173`、`127.0.0.1:4173` 跨源携带 Cookie 访问，其他前端源通过 `CORS_ALLOWED_ORIGINS` 扩展。

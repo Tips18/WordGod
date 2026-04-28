@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppShell } from './App';
@@ -101,8 +101,11 @@ describe('AppShell behaviors', () => {
 
     renderApp();
 
+    const article = await screen.findByRole('article');
     const tokenButton = await screen.findByRole('button', { name: 'Obscure' });
 
+    expect(within(article).getByText(/theories/)).toBeInTheDocument();
+    expect(within(article).getByText(/practice/)).toBeInTheDocument();
     await userEvent.click(tokenButton);
 
     expect(tokenButton).toHaveAttribute('aria-pressed', 'true');
@@ -161,10 +164,14 @@ describe('AppShell behaviors', () => {
 
     renderApp();
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Obscure' }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Obscure' }),
+    );
     await userEvent.click(screen.getByRole('button', { name: '下一篇' }));
 
-    expect(await screen.findByRole('dialog', { name: '登录后继续' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('dialog', { name: '登录后继续' }),
+    ).toBeInTheDocument();
   });
 
   it('logs in from the auth dialog and continues to the next passage', async () => {
@@ -206,7 +213,11 @@ describe('AppShell behaviors', () => {
         }),
       )
       .mockResolvedValueOnce(createJsonResponse(401, { message: '需要登录' }))
-      .mockResolvedValueOnce(createJsonResponse(200, { user: { id: 'user-1', email: 'reader@example.com' } }))
+      .mockResolvedValueOnce(
+        createJsonResponse(200, {
+          user: { id: 'user-1', email: 'reader@example.com' },
+        }),
+      )
       .mockResolvedValueOnce(createJsonResponse(200, { success: true }))
       .mockResolvedValueOnce(
         createJsonResponse(201, {
@@ -251,9 +262,14 @@ describe('AppShell behaviors', () => {
 
     renderApp();
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Obscure' }));
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Obscure' }),
+    );
     await userEvent.click(screen.getByRole('button', { name: '下一篇' }));
-    await userEvent.type(await screen.findByLabelText('邮箱'), 'reader@example.com');
+    await userEvent.type(
+      await screen.findByLabelText('邮箱'),
+      'reader@example.com',
+    );
     await userEvent.type(screen.getByLabelText('密码'), 'Passw0rd!');
     await userEvent.click(screen.getByRole('button', { name: '登录并继续' }));
 
@@ -319,7 +335,9 @@ describe('AppShell behaviors', () => {
     await userEvent.click(detailLink);
 
     await waitFor(() => {
-      expect(screen.getByText('晦涩的争论缓慢地重塑公共政策。')).toBeInTheDocument();
+      expect(
+        screen.getByText('晦涩的争论缓慢地重塑公共政策。'),
+      ).toBeInTheDocument();
     });
   });
 });

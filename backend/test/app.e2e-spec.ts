@@ -58,6 +58,10 @@ describe('AppController (e2e)', () => {
     expect(responseBody.passage.title).not.toBe('Memory and Method');
     expect(responseBody.passage.sourceUrl).not.toContain('example.com');
     expect(responseBody.passage.id).toMatch(/^kaoyan-\d{4}-english-/);
+    expect(
+      responseBody.passage.content.split(/\s+/).filter(Boolean).length,
+    ).toBeGreaterThan(100);
+    expect(responseBody.tokens.length).toBeGreaterThan(50);
   });
 
   it('returns a readable passage when store mode is not configured', async () => {

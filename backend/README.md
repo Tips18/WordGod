@@ -1,6 +1,6 @@
 # Backend
 
-后端使用 `NestJS + Prisma + PostgreSQL schema`。业务服务通过 `AppStore` 抽象访问数据，只有显式设置 `WORD_GOD_STORE=prisma` 时使用 `PrismaAppStore` 连接 PostgreSQL；未设置或设置为 `memory` 时使用带考研英语种子段落的 `InMemoryAppStore`，便于无数据库演示和测试。
+后端使用 `NestJS + Prisma + PostgreSQL schema`。业务服务通过 `AppStore` 抽象访问数据，只有显式设置 `WORD_GOD_STORE=prisma` 时使用 `PrismaAppStore` 连接 PostgreSQL；未设置或设置为 `memory` 时使用带考研英语真实长段落种子题库的 `InMemoryAppStore`，便于无数据库演示和测试。
 
 ## 已实现接口
 
