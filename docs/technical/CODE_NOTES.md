@@ -22,3 +22,4 @@
 - 内容命令执行后会在仓库根目录生成 `content-cache/` 产物，便于检查抓取、规范化和入库结果。
 - API 启动配置集中在 `backend/src/app-bootstrap.ts`，新增中间件或全局管道时需要让 `main.ts` 和 e2e 测试共用该配置。
 - 本地前端地址变更时，使用 `CORS_ALLOWED_ORIGINS` 追加允许来源，避免浏览器跨端口请求阅读接口时被 CORS 拦截。
+- `词库/` 保存可复用公开来源转换出的 Markdown 真题资料；来源、授权说明和缺失年份检查结果分别记录在 `词库/kaoyan-english-source-index.md` 与 `词库/kaoyan-english-missing-sources.md`。
