@@ -10,11 +10,12 @@ import {
   VocabularyContextRecord,
   VocabularyEntryRecord,
 } from './store.types';
+import { AppStore } from './app-store';
 
 /**
  * `InMemoryAppStore` 为当前服务提供可测试的内存数据存储。
  */
-export class InMemoryAppStore {
+export class InMemoryAppStore implements AppStore {
   private readonly users: UserRecord[];
   private readonly sessions: AuthSessionRecord[];
   private readonly passages: PassageRecord[];

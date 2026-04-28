@@ -3,8 +3,9 @@ import {
   ReadingPassageResponse,
   SyncReadingAttemptRequest,
 } from '@word-god/contracts';
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InMemoryAppStore } from '../store/in-memory-app.store';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { APP_STORE } from '../store/app-store';
+import type { AppStore } from '../store/app-store';
 import { VocabularyService } from '../vocabulary/vocabulary.service';
 
 /**
@@ -16,20 +17,23 @@ export class ReadingService {
    * `constructor` 注入阅读流程所需的服务。
    */
   constructor(
-    private readonly store: InMemoryAppStore,
+    @Inject(APP_STORE) private readonly store: AppStore,
     private readonly vocabularyService: VocabularyService,
   ) {}
 
   /**
    * `getRandomPassage` 返回一个不与上次相同的可阅读段落。
    */
-  getRandomPassage(
+  async getRandomPassage(
     userId?: string,
     excludePassageId?: string,
-  ): ReadingPassageResponse {
-    const passages = this.store.listPassages();
+  ): Promise<ReadingPassageResponse> {
+    const passages = await this.store.listPassages();
+    const availablePassages = excludePassageId
+      ? passages.filter((passage) => passage.id !== excludePassageId)
+      : passages;
     const selectedPassage =
-      passages.find((passage) => passage.id !== excludePassageId) ??
+      availablePassages[Math.floor(Math.random() * availablePassages.length)] ??
       passages[0];
 
     if (!selectedPassage) {
@@ -37,8 +41,8 @@ export class ReadingService {
     }
 
     const selectedTokenIds = userId
-      ? (this.store.findAttempt(userId, selectedPassage.id)?.selectedTokenIds ??
-        [])
+      ? ((await this.store.findAttempt(userId, selectedPassage.id))
+          ?.selectedTokenIds ?? [])
       : [];
 
     return {
@@ -63,12 +67,12 @@ export class ReadingService {
   /**
    * `syncAttempt` 以整段覆盖的方式更新当前用户的选择集合。
    */
-  syncAttempt(
+  async syncAttempt(
     userId: string,
     passageId: string,
     payload: SyncReadingAttemptRequest,
-  ): void {
-    const passage = this.store.findPassage(passageId);
+  ): Promise<void> {
+    const passage = await this.store.findPassage(passageId);
 
     if (!passage) {
       throw new NotFoundException('段落不存在');
@@ -79,7 +83,7 @@ export class ReadingService {
       (tokenId) => validTokenIds.has(tokenId),
     );
 
-    this.store.saveAttempt({
+    await this.store.saveAttempt({
       userId,
       passageId,
       selectedTokenIds: uniqueSelection,
@@ -90,12 +94,12 @@ export class ReadingService {
   /**
    * `completeAttempt` 结算当前段落并返回下一段内容。
    */
-  completeAttempt(
+  async completeAttempt(
     userId: string,
     passageId: string,
-  ): CompleteReadingAttemptResponse {
-    const attempt = this.store.findAttempt(userId, passageId);
-    const passage = this.store.findPassage(passageId);
+  ): Promise<CompleteReadingAttemptResponse> {
+    const attempt = await this.store.findAttempt(userId, passageId);
+    const passage = await this.store.findPassage(passageId);
 
     if (!passage) {
       throw new NotFoundException('段落不存在');
@@ -104,13 +108,13 @@ export class ReadingService {
     const selectedTokens = passage.tokens.filter((token) =>
       attempt?.selectedTokenIds.includes(token.id),
     );
-    const savedLemmaCount = this.vocabularyService.recordMarks(
+    const savedLemmaCount = await this.vocabularyService.recordMarks(
       userId,
       passage,
       selectedTokens,
     );
 
-    this.store.saveAttempt({
+    await this.store.saveAttempt({
       id: attempt?.id,
       userId,
       passageId,
@@ -121,7 +125,7 @@ export class ReadingService {
     return {
       completedPassageId: passageId,
       savedLemmaCount,
-      nextPassage: this.getRandomPassage(userId, passageId),
+      nextPassage: await this.getRandomPassage(userId, passageId),
     };
   }
 }

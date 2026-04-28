@@ -23,7 +23,11 @@
     "content:crawl": "tsx src/content/cli.ts crawl",
     "content:normalize": "tsx src/content/cli.ts normalize",
     "content:translate": "tsx src/content/cli.ts translate",
-    "content:ingest": "tsx src/content/cli.ts ingest"
+    "content:ingest": "tsx src/content/cli.ts ingest",
+    "content:extract-word-bank": "tsx src/content/cli.ts extract-word-bank",
+    "content:create-translation-batch": "tsx src/content/cli.ts create-translation-batch",
+    "content:import-translation-batch": "tsx src/content/cli.ts import-translation-batch",
+    "content:import-word-bank": "tsx src/content/cli.ts import-word-bank"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

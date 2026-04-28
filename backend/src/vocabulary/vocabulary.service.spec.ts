@@ -2,7 +2,7 @@ import { VocabularyService } from './vocabulary.service';
 import { InMemoryAppStore } from '../store/in-memory-app.store';
 
 describe('VocabularyService', () => {
-  it('sorts items by mark count first and latest marked time second', () => {
+  it('sorts items by mark count first and latest marked time second', async () => {
     const store = new InMemoryAppStore({
       vocabularyEntries: [
         {
@@ -39,7 +39,7 @@ describe('VocabularyService', () => {
     });
     const service = new VocabularyService(store);
 
-    const list = service.listForUser('user-1');
+    const list = await service.listForUser('user-1');
 
     expect(list.items.map((item) => item.lemma)).toEqual([
       'align',

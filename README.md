@@ -5,7 +5,7 @@
 ## 仓库结构
 
 - `frontend/`：React + Vite 前端应用，承载阅读检测、登录注册和生词本页面。
-- `backend/`：NestJS API 服务，当前默认使用内存存储和种子题库运行，同时提供 Prisma/PostgreSQL schema。
+- `backend/`：NestJS API 服务，提供认证、阅读结算、生词本聚合、Prisma/PostgreSQL 存储和内部内容导入命令。
 - `packages/contracts/`：前后端共享 DTO、领域类型和常量。
 - `docs/`：产品文档、技术设计、编码规范和迭代记录。
 - `词库/`：考研英语一/二真题 Markdown 资料与来源索引，当前覆盖 2017-2023 年可复用公开来源，2024-2026 年缺失来源记录在 `kaoyan-english-missing-sources.md`。
@@ -38,6 +38,13 @@ corepack pnpm dev:backend
 corepack pnpm dev:frontend
 ```
 
+后端会读取仓库根目录 `.env`。`WORD_GOD_STORE=prisma` 时使用 PostgreSQL，需先准备 `DATABASE_URL` 并执行迁移；`WORD_GOD_STORE=memory` 时使用内置考研英语种子段落，适合无数据库本地演示和测试。
+
+```powershell
+corepack pnpm --filter backend prisma:migrate:dev
+$env:WORD_GOD_STORE="memory"; corepack pnpm dev:backend
+```
+
 前端默认请求 `http://localhost:3000`，后端默认允许 `http://localhost:5173` 与 `http://127.0.0.1:5173` 携带登录 Cookie 访问。若使用其他前端地址，设置 `CORS_ALLOWED_ORIGINS`，多个来源用英文逗号分隔。首页若无法连接 API，会显示加载错误而不是一直停留在“正在载入真题段落...”。
 
 ## 测试命令
@@ -61,6 +68,10 @@ corepack pnpm --filter backend content:crawl
 corepack pnpm --filter backend content:normalize
 corepack pnpm --filter backend content:translate
 corepack pnpm --filter backend content:ingest
+corepack pnpm --filter backend content:extract-word-bank
+corepack pnpm --filter backend content:create-translation-batch
+corepack pnpm --filter backend content:import-translation-batch
+corepack pnpm --filter backend content:import-word-bank
 ```
 
-`词库/kaoyan-english-source-index.md` 记录了题库资料的来源与转换状态；新增真题资料前先确认来源允许复用，不要把禁止批量抓取或授权不明的内容放入仓库。
+`词库/kaoyan-english-source-index.md` 记录了题库资料的来源与转换状态；新增真题资料前先确认来源允许复用，不要把禁止批量抓取或授权不明的内容放入仓库。`extract-word-bank` 会从每篇 Text 随机抽取一个正文段并写入 `content-cache/word-bank-extracted-passages.json`；OpenAI Batch 命令需要 `OPENAI_API_KEY`，会生成 JSONL 输入、Batch 元数据、输出和导入错误记录，最终把富化后的段落与词典词条写入 PostgreSQL。

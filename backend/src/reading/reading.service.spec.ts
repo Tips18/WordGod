@@ -163,11 +163,11 @@ describe('ReadingService', () => {
     readingService = new ReadingService(store, vocabularyService);
   });
 
-  it('replaces the full selected token set when syncing an attempt', () => {
-    readingService.syncAttempt('user-1', 'passage-1', {
+  it('replaces the full selected token set when syncing an attempt', async () => {
+    await readingService.syncAttempt('user-1', 'passage-1', {
       selectedTokenIds: ['p1-t1', 'p1-t3'],
     });
-    readingService.syncAttempt('user-1', 'passage-1', {
+    await readingService.syncAttempt('user-1', 'passage-1', {
       selectedTokenIds: ['p1-t3'],
     });
 
@@ -176,21 +176,26 @@ describe('ReadingService', () => {
     ]);
   });
 
-  it('does not write vocabulary entries before the attempt is completed', () => {
-    readingService.syncAttempt('user-1', 'passage-1', {
+  it('does not write vocabulary entries before the attempt is completed', async () => {
+    await readingService.syncAttempt('user-1', 'passage-1', {
       selectedTokenIds: ['p1-t1'],
     });
 
-    expect(vocabularyService.listForUser('user-1').items).toHaveLength(0);
+    await expect(vocabularyService.listForUser('user-1')).resolves.toEqual({
+      items: [],
+    });
   });
 
-  it('completes a passage, counts each lemma once, and returns a different next passage', () => {
-    readingService.syncAttempt('user-1', 'passage-1', {
+  it('completes a passage, counts each lemma once, and returns a different next passage', async () => {
+    await readingService.syncAttempt('user-1', 'passage-1', {
       selectedTokenIds: ['p1-t1', 'p1-t2', 'p1-t3'],
     });
 
-    const completion = readingService.completeAttempt('user-1', 'passage-1');
-    const items = vocabularyService.listForUser('user-1').items;
+    const completion = await readingService.completeAttempt(
+      'user-1',
+      'passage-1',
+    );
+    const items = (await vocabularyService.listForUser('user-1')).items;
 
     expect(completion.savedLemmaCount).toBe(2);
     expect(completion.nextPassage.passage.id).not.toBe('passage-1');
@@ -198,7 +203,7 @@ describe('ReadingService', () => {
     expect(items.find((item) => item.lemma === 'align')?.markCount).toBe(1);
   });
 
-  it('increments repeated lemmas across passages and keeps only the latest three contexts', () => {
+  it('increments repeated lemmas across passages and keeps only the latest three contexts', async () => {
     for (const passageId of [
       'passage-1',
       'passage-2',
@@ -207,13 +212,13 @@ describe('ReadingService', () => {
     ]) {
       const tokenId = store.findPassage(passageId)?.tokens[0]?.id;
 
-      readingService.syncAttempt('user-1', passageId, {
+      await readingService.syncAttempt('user-1', passageId, {
         selectedTokenIds: tokenId ? [tokenId] : [],
       });
-      readingService.completeAttempt('user-1', passageId);
+      await readingService.completeAttempt('user-1', passageId);
     }
 
-    const detail = vocabularyService.getDetail('user-1', 'obscure');
+    const detail = await vocabularyService.getDetail('user-1', 'obscure');
 
     expect(detail.item.markCount).toBe(4);
     expect(detail.item.contexts).toHaveLength(3);

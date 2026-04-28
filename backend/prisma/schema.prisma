@@ -45,6 +45,8 @@ model Passage {
   publishedAt    DateTime
   readingAttempts ReadingAttempt[]
   vocabularyContexts VocabularyContext[]
+
+  @@unique([examType, year, paper, questionType, passageIndex])
 }
 
 model LexiconEntry {
@@ -108,4 +110,3 @@ model CrawlJob {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
-

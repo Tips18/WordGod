@@ -57,7 +57,7 @@ export class ReadingController {
       response,
     );
 
-    this.readingService.syncAttempt(session.user.id, passageId, payload);
+    await this.readingService.syncAttempt(session.user.id, passageId, payload);
     return { success: true };
   }
 

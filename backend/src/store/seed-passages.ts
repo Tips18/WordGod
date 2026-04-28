@@ -2,170 +2,141 @@ import { PassageToken } from '@word-god/contracts';
 import { PassageRecord } from './store.types';
 
 /**
- * `createToken` 生成默认题库使用的 token 数据。
+ * `createToken` 生成测试内存题库使用的 token 数据。
  */
 function createToken(
   token: Partial<PassageToken> & Pick<PassageToken, 'id' | 'lemma' | 'surface'>,
 ): PassageToken {
   return {
     sentenceIndex: 0,
-    partOfSpeech: 'adj.',
-    definitionCn: '默认释义',
-    translationCn: '默认翻译',
+    partOfSpeech: 'n.',
+    definitionCn: '测试释义',
+    translationCn: '测试翻译',
     isWord: true,
     ...token,
   };
 }
 
 /**
- * `seedPassages` 提供应用启动时的默认阅读题库。
+ * `seedPassages` 提供测试内存模式使用的真实考研阅读段落。
  */
 export const seedPassages: PassageRecord[] = [
   {
-    id: 'passage-1',
-    examType: 'kaoyan',
-    year: 2024,
-    paper: '英语一',
-    questionType: 'reading',
-    passageIndex: 1,
-    title: 'Memory and Method',
-    content: 'Obscure theories align with patient practice.',
-    sourceUrl: 'https://example.com/kaoyan/2024/1',
-    sourceDomain: 'example.com',
-    sentences: [
-      {
-        index: 0,
-        text: 'Obscure theories align with patient practice.',
-        translation: '晦涩的理论与耐心的实践保持一致。',
-      },
-    ],
-    tokens: [
-      createToken({
-        id: 'p1-t1',
-        lemma: 'obscure',
-        surface: 'Obscure',
-        definitionCn: '晦涩的',
-      }),
-      createToken({
-        id: 'p1-t2',
-        lemma: 'theory',
-        surface: 'theories',
-        definitionCn: '理论',
-        partOfSpeech: 'n.',
-      }),
-      createToken({
-        id: 'p1-t3',
-        lemma: 'align',
-        surface: 'align',
-        definitionCn: '使一致',
-        partOfSpeech: 'v.',
-      }),
-    ],
-    publishedAt: '2026-04-26T00:00:00.000Z',
-  },
-  {
-    id: 'passage-2',
-    examType: 'kaoyan',
-    year: 2023,
-    paper: '英语一',
-    questionType: 'reading',
-    passageIndex: 2,
-    title: 'Attention and Choice',
-    content: 'Obscure symbols quietly shape collective memory.',
-    sourceUrl: 'https://example.com/kaoyan/2023/2',
-    sourceDomain: 'example.com',
-    sentences: [
-      {
-        index: 0,
-        text: 'Obscure symbols quietly shape collective memory.',
-        translation: '晦涩的符号悄然塑造集体记忆。',
-      },
-    ],
-    tokens: [
-      createToken({
-        id: 'p2-t1',
-        lemma: 'obscure',
-        surface: 'Obscure',
-        definitionCn: '晦涩的',
-      }),
-      createToken({
-        id: 'p2-t2',
-        lemma: 'shape',
-        surface: 'shape',
-        definitionCn: '塑造',
-        partOfSpeech: 'v.',
-      }),
-    ],
-    publishedAt: '2026-04-25T00:00:00.000Z',
-  },
-  {
-    id: 'passage-3',
+    id: 'kaoyan-2022-english-i-reading-text-1',
     examType: 'kaoyan',
     year: 2022,
     paper: '英语一',
     questionType: 'reading',
-    passageIndex: 3,
-    title: 'Archives and Readers',
-    content: 'Obscure archives challenge even confident readers.',
-    sourceUrl: 'https://example.com/kaoyan/2022/3',
-    sourceDomain: 'example.com',
+    passageIndex: 1,
+    title: '2022 英语一 Text 1',
+    content:
+      'People often complain that plastics are too durable. Water bottles, shopping bags, and other trash litter the planet.',
+    sourceUrl:
+      'https://raw.githubusercontent.com/Fantasia1999/kaoyanzhenti/main/2022-english-i.pdf',
+    sourceDomain: 'raw.githubusercontent.com',
     sentences: [
       {
         index: 0,
-        text: 'Obscure archives challenge even confident readers.',
-        translation: '晦涩的档案甚至挑战自信的读者。',
+        text: 'People often complain that plastics are too durable. Water bottles, shopping bags, and other trash litter the planet.',
+        translation:
+          '人们常常抱怨塑料太耐用了。水瓶、购物袋和其他垃圾遍布地球。',
       },
     ],
     tokens: [
       createToken({
-        id: 'p3-t1',
-        lemma: 'obscure',
-        surface: 'Obscure',
-        definitionCn: '晦涩的',
+        id: 'k2022-i-t1-people',
+        lemma: 'people',
+        surface: 'People',
+        definitionCn: '人们',
       }),
       createToken({
-        id: 'p3-t2',
-        lemma: 'archive',
-        surface: 'archives',
-        definitionCn: '档案',
-        partOfSpeech: 'n.',
+        id: 'k2022-i-t1-complain',
+        lemma: 'complain',
+        surface: 'complain',
+        partOfSpeech: 'v.',
+        definitionCn: '抱怨',
+      }),
+      createToken({
+        id: 'k2022-i-t1-plastics',
+        lemma: 'plastic',
+        surface: 'plastics',
+        definitionCn: '塑料',
       }),
     ],
-    publishedAt: '2026-04-24T00:00:00.000Z',
+    publishedAt: '2022-01-01T00:00:00.000Z',
   },
   {
-    id: 'passage-4',
+    id: 'kaoyan-2022-english-i-reading-text-2',
     examType: 'kaoyan',
-    year: 2021,
+    year: 2022,
     paper: '英语一',
     questionType: 'reading',
-    passageIndex: 4,
-    title: 'Debate and Policy',
-    content: 'Obscure debates slowly reshape public policy.',
-    sourceUrl: 'https://example.com/kaoyan/2021/4',
-    sourceDomain: 'example.com',
+    passageIndex: 2,
+    title: '2022 英语一 Text 2',
+    content:
+      'As the latest crop of students pen their undergraduate application forms, it may be worth considering how the value of a degree has changed.',
+    sourceUrl:
+      'https://raw.githubusercontent.com/Fantasia1999/kaoyanzhenti/main/2022-english-i.pdf',
+    sourceDomain: 'raw.githubusercontent.com',
     sentences: [
       {
         index: 0,
-        text: 'Obscure debates slowly reshape public policy.',
-        translation: '晦涩的争论缓慢地重塑公共政策。',
+        text: 'As the latest crop of students pen their undergraduate application forms, it may be worth considering how the value of a degree has changed.',
+        translation:
+          '当最新一批学生填写本科申请表时，值得思考学位的价值发生了怎样的变化。',
       },
     ],
     tokens: [
       createToken({
-        id: 'p4-t1',
-        lemma: 'obscure',
-        surface: 'Obscure',
-        definitionCn: '晦涩的',
+        id: 'k2022-i-t2-students',
+        lemma: 'student',
+        surface: 'students',
+        definitionCn: '学生',
       }),
       createToken({
-        id: 'p4-t2',
-        lemma: 'reshape',
-        surface: 'reshape',
-        definitionCn: '重塑',
-        partOfSpeech: 'v.',
+        id: 'k2022-i-t2-degree',
+        lemma: 'degree',
+        surface: 'degree',
+        definitionCn: '学位',
       }),
     ],
-    publishedAt: '2026-04-23T00:00:00.000Z',
+    publishedAt: '2022-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'kaoyan-2023-english-i-reading-text-1',
+    examType: 'kaoyan',
+    year: 2023,
+    paper: '英语一',
+    questionType: 'reading',
+    passageIndex: 1,
+    title: '2023 英语一 Text 1',
+    content:
+      'The weather in Texas may have cooled since the recent extreme heat, but the temperature will be high at the State Board of Education meeting.',
+    sourceUrl:
+      'https://raw.githubusercontent.com/Fantasia1999/kaoyanzhenti/main/2023-english-i.pdf',
+    sourceDomain: 'raw.githubusercontent.com',
+    sentences: [
+      {
+        index: 0,
+        text: 'The weather in Texas may have cooled since the recent extreme heat, but the temperature will be high at the State Board of Education meeting.',
+        translation:
+          '最近的极端高温过后，得克萨斯的天气或许已经降温，但州教育委员会会议上的气氛仍会很热烈。',
+      },
+    ],
+    tokens: [
+      createToken({
+        id: 'k2023-i-t1-weather',
+        lemma: 'weather',
+        surface: 'weather',
+        definitionCn: '天气',
+      }),
+      createToken({
+        id: 'k2023-i-t1-education',
+        lemma: 'education',
+        surface: 'Education',
+        definitionCn: '教育',
+      }),
+    ],
+    publishedAt: '2023-01-01T00:00:00.000Z',
   },
 ];

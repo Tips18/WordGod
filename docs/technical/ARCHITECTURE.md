@@ -5,7 +5,7 @@
 项目采用前后端分离的 `pnpm workspace` 单仓结构：
 
 - `frontend/`：阅读检测、登录注册和生词本 UI。
-- `backend/`：REST API、认证、阅读结算、生词本聚合和内容管线。
+- `backend/`：REST API、认证、阅读结算、生词本聚合、内容管线和可切换应用存储。
 - `packages/contracts/`：共享 DTO 和领域类型。
 - `词库/`：离线真题 Markdown 资料、来源索引和缺失来源记录，作为内容运营输入资料，不直接作为运行时数据库。
 
@@ -21,8 +21,9 @@
 - `auth`：注册、登录、登出、当前会话识别。
 - `reading`：随机段落、临时标记同步、完成结算、下一段分发。
 - `vocabulary`：生词本列表和详情。
-- `content`：白名单抓取、标准化、翻译、入库命令。
-- `prisma`：提供 PostgreSQL schema 与 Prisma Client 生命周期封装。
+- `content`：白名单抓取、标准化、翻译、词库抽取、OpenAI Batch 富化和入库命令。
+- `store`：通过 `AppStore` 抽象隔离内存存储与 Prisma/PostgreSQL 存储。
+- `prisma`：提供 PostgreSQL schema、Prisma Client 生命周期封装和真实数据库访问基础。
 - `app-bootstrap`：统一挂载 CORS、Cookie 解析和全局校验管道，避免生产入口与 e2e 测试配置漂移。
 
 ## 数据流
@@ -35,9 +36,10 @@
 
 ## 当前实现说明
 
-- 为了让仓库在无数据库环境下也能直接运行，API 当前默认注入 `InMemoryAppStore` 和种子题库。
-- `backend/prisma/schema.prisma` 与 `backend/src/prisma/prisma.service.ts` 已准备完毕，后续切换真实 PostgreSQL 时可直接替换存储实现。
+- API 通过 `WORD_GOD_STORE` 选择存储实现：`prisma` 使用 PostgreSQL，`memory` 使用 `InMemoryAppStore` 和种子题库。
+- `backend/src/store/prisma-app.store.ts` 已实现认证、阅读、生词本和内容基础数据的 Prisma 访问，业务服务只依赖 `AppStore` 注入令牌。
 - 前端通过 `packages/contracts/` 共享 DTO 与领域类型，避免重复定义接口结构。
 - 后端默认允许 `localhost:5173`、`127.0.0.1:5173`、`localhost:4173`、`127.0.0.1:4173` 跨源携带 Cookie 访问，其他前端源通过 `CORS_ALLOWED_ORIGINS` 扩展。
 - 阅读页初始接口失败时优先渲染错误态，避免无数据且已失败的查询被误判为仍在加载。
 - `词库/` 当前覆盖 2017-2023 考研英语一/二资料；2024-2026 未找到允许复用来源时只记录缺失原因，不保存授权不明内容。
+- 词库导入流程会从每篇 Text 抽取一个正文段，写入 `content-cache/word-bank-extracted-passages.json`，再通过 OpenAI Batch 生成句子翻译和 token 释义，最后 upsert 到 PostgreSQL 的 `Passage` 与 `LexiconEntry`。

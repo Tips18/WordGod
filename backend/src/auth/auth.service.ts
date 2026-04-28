@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { compare, hash } from 'bcrypt';
 import {
@@ -8,7 +8,8 @@ import {
 } from '@word-god/contracts';
 import { randomUUID } from 'node:crypto';
 import { Request, Response } from 'express';
-import { InMemoryAppStore } from '../store/in-memory-app.store';
+import { APP_STORE } from '../store/app-store';
+import type { AppStore } from '../store/app-store';
 
 const ACCESS_COOKIE = 'word_god_access_token';
 const REFRESH_COOKIE = 'word_god_refresh_token';
@@ -44,7 +45,7 @@ export class AuthService {
    * `constructor` 初始化认证服务所需的依赖。
    */
   constructor(
-    private readonly store: InMemoryAppStore,
+    @Inject(APP_STORE) private readonly store: AppStore,
     private readonly jwtSecret: string,
   ) {
     this.jwtService = new JwtService({ secret: jwtSecret });
@@ -54,7 +55,7 @@ export class AuthService {
    * `register` 创建新用户并签发访问令牌与刷新令牌。
    */
   async register(input: RegisterRequest): Promise<AuthSessionResult> {
-    const existingUser = this.store.findUserByEmail(input.email);
+    const existingUser = await this.store.findUserByEmail(input.email);
 
     if (existingUser) {
       throw new UnauthorizedException('邮箱已被注册');
@@ -62,7 +63,7 @@ export class AuthService {
 
     const now = new Date().toISOString();
     const passwordHash = await hash(input.password, 10);
-    const savedUser = this.store.saveUser({
+    const savedUser = await this.store.saveUser({
       email: input.email,
       passwordHash,
       createdAt: now,
@@ -76,7 +77,7 @@ export class AuthService {
    * `login` 校验邮箱密码并签发新会话。
    */
   async login(input: LoginRequest): Promise<AuthSessionResult> {
-    const savedUser = this.store.findUserByEmail(input.email);
+    const savedUser = await this.store.findUserByEmail(input.email);
 
     if (!savedUser) {
       throw new UnauthorizedException('邮箱或密码错误');
@@ -95,11 +96,11 @@ export class AuthService {
    * `logout` 删除与刷新令牌对应的持久化会话。
    */
   async logout(refreshToken: string): Promise<void> {
-    for (const session of this.store.listSessions()) {
+    for (const session of await this.store.listSessions()) {
       const matched = await compare(refreshToken, session.refreshTokenHash);
 
       if (matched) {
-        this.store.removeSessionById(session.id);
+        await this.store.removeSessionById(session.id);
         return;
       }
     }
@@ -153,7 +154,7 @@ export class AuthService {
         }>(accessToken, {
           secret: this.jwtSecret,
         });
-        const user = this.store.findUserById(payload.sub);
+        const user = await this.store.findUserById(payload.sub);
 
         if (user) {
           return {
@@ -174,7 +175,7 @@ export class AuthService {
       return null;
     }
 
-    for (const session of this.store.listSessions()) {
+    for (const session of await this.store.listSessions()) {
       const matched = await compare(refreshToken, session.refreshTokenHash);
 
       if (!matched) {
@@ -182,11 +183,11 @@ export class AuthService {
       }
 
       if (new Date(session.expiresAt).getTime() <= Date.now()) {
-        this.store.removeSessionById(session.id);
+        await this.store.removeSessionById(session.id);
         return null;
       }
 
-      const user = this.store.findUserById(session.userId);
+      const user = await this.store.findUserById(session.userId);
 
       if (!user) {
         return null;
@@ -250,7 +251,7 @@ export class AuthService {
       email,
     });
 
-    this.store.saveSession({
+    await this.store.saveSession({
       userId,
       refreshTokenHash,
       createdAt: now.toISOString(),

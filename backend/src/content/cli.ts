@@ -1,10 +1,20 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { PrismaClient } from '@prisma/client';
 import {
   extractPassageSegments,
   ingestNormalizedPassages,
   restoreClozeAnswers,
 } from './parser';
+import {
+  createOpenAiBatch,
+  createWordBankImportPaths,
+  extractWordBankPassages,
+  fetchOpenAiBatchOutput,
+  readBatchEnrichments,
+  upsertEnrichedPassages,
+  writeOpenAiBatchInput,
+} from './word-bank.importer';
 
 interface SourceFixture {
   url: string;
@@ -22,6 +32,7 @@ const normalizedFile = join(cacheRoot, 'normalized-passages.json');
 const translatedFile = join(cacheRoot, 'translated-passages.json');
 const ingestedPassagesFile = join(cacheRoot, 'ingested-passages.json');
 const ingestedLexiconFile = join(cacheRoot, 'ingested-lexicon.json');
+const wordBankImportPaths = createWordBankImportPaths(workspaceRoot);
 
 const fixtures: SourceFixture[] = [
   {
@@ -149,6 +160,112 @@ async function runIngest() {
 }
 
 /**
+ * `getOpenAiModel` 读取内容富化使用的 OpenAI 模型名。
+ */
+function getOpenAiModel(): string {
+  return process.env.OPENAI_TRANSLATION_MODEL ?? 'gpt-5-mini';
+}
+
+/**
+ * `getOpenAiApiKey` 读取 OpenAI API Key 并在缺失时给出明确错误。
+ */
+function getOpenAiApiKey(): string {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('缺少 OPENAI_API_KEY，无法创建或下载 OpenAI Batch');
+  }
+
+  return apiKey;
+}
+
+/**
+ * `hasFlag` 判断命令行是否包含指定参数。
+ */
+function hasFlag(flag: string): boolean {
+  return process.argv.includes(flag);
+}
+
+/**
+ * `runExtractWordBank` 从词库 Markdown 抽取每篇 Text 的一个随机正文段。
+ */
+async function runExtractWordBank() {
+  const selected = await extractWordBankPassages(
+    wordBankImportPaths,
+    hasFlag('--force-resample'),
+  );
+
+  console.log(`Extracted ${selected.length} word-bank passages.`);
+}
+
+/**
+ * `runCreateTranslationBatch` 生成并提交 OpenAI Batch 富化任务。
+ */
+async function runCreateTranslationBatch() {
+  const selected = await extractWordBankPassages(
+    wordBankImportPaths,
+    hasFlag('--force-resample'),
+  );
+
+  await writeOpenAiBatchInput(wordBankImportPaths, selected, getOpenAiModel());
+
+  const metadata = await createOpenAiBatch(wordBankImportPaths, getOpenAiApiKey());
+
+  console.log(`Created OpenAI batch ${metadata.batchId}.`);
+}
+
+/**
+ * `runImportTranslationBatch` 下载或读取 Batch 输出并写入 PostgreSQL。
+ */
+async function runImportTranslationBatch() {
+  const selected = await extractWordBankPassages(wordBankImportPaths, false);
+
+  if (!hasFlag('--skip-download')) {
+    await fetchOpenAiBatchOutput(wordBankImportPaths, getOpenAiApiKey());
+  }
+
+  const { enrichments, errors } = await readBatchEnrichments(wordBankImportPaths);
+  const prisma = new PrismaClient();
+
+  try {
+    const importedCount = await upsertEnrichedPassages(
+      prisma,
+      selected,
+      enrichments,
+    );
+
+    console.log(
+      `Imported ${importedCount} passages. ${errors.length} batch rows failed validation.`,
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+/**
+ * `runImportWordBank` 执行词库抽取并根据现有 Batch 输出决定创建或入库。
+ */
+async function runImportWordBank() {
+  const selected = await extractWordBankPassages(
+    wordBankImportPaths,
+    hasFlag('--force-resample'),
+  );
+
+  await writeOpenAiBatchInput(wordBankImportPaths, selected, getOpenAiModel());
+
+  if (hasFlag('--skip-download')) {
+    await runImportTranslationBatch();
+    return;
+  }
+
+  const metadata = await createOpenAiBatch(wordBankImportPaths, getOpenAiApiKey());
+
+  console.log(
+    `Created OpenAI batch ${metadata.batchId}. Re-run import-translation-batch after it completes.`,
+  );
+}
+
+/**
  * `main` 根据命令行子命令分发内容处理流程。
  */
 async function main() {
@@ -171,6 +288,26 @@ async function main() {
 
   if (command === 'ingest') {
     await runIngest();
+    return;
+  }
+
+  if (command === 'extract-word-bank') {
+    await runExtractWordBank();
+    return;
+  }
+
+  if (command === 'create-translation-batch') {
+    await runCreateTranslationBatch();
+    return;
+  }
+
+  if (command === 'import-translation-batch') {
+    await runImportTranslationBatch();
+    return;
+  }
+
+  if (command === 'import-word-bank') {
+    await runImportWordBank();
     return;
   }
 

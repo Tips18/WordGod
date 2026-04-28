@@ -14,6 +14,8 @@ describe('AppController (e2e)', () => {
   let app: INestApplication;
 
   beforeEach(async () => {
+    process.env.WORD_GOD_STORE = 'memory';
+
     const moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -25,6 +27,7 @@ describe('AppController (e2e)', () => {
 
   afterEach(async () => {
     await app.close();
+    delete process.env.WORD_GOD_STORE;
   });
 
   it('returns a readable passage for guests', async () => {
@@ -36,6 +39,9 @@ describe('AppController (e2e)', () => {
     expect(responseBody.passage.id).toBeDefined();
     expect(responseBody.tokens.length).toBeGreaterThan(0);
     expect(responseBody.requiresAuthToComplete).toBe(true);
+    expect(responseBody.passage.title).not.toBe('Memory and Method');
+    expect(responseBody.passage.sourceUrl).not.toContain('example.com');
+    expect(responseBody.passage.id).toMatch(/^kaoyan-\d{4}-english-/);
   });
 
   it('allows the frontend dev origin to request passages with credentials', async () => {
@@ -92,15 +98,25 @@ describe('AppController (e2e)', () => {
       password: 'Passw0rd!',
     });
 
-    await agent.put('/reading/attempts/passage-1').send({
-      selectedTokenIds: ['p1-t1'],
-    });
-    await agent.post('/reading/attempts/passage-1/complete').expect(201);
+    const passageResponse = await agent
+      .get('/reading/passages/random')
+      .expect(200);
+    const passageBody = passageResponse.body as ReadingPassageResponse;
+    const selectedToken = passageBody.tokens[0];
 
-    const detailResponse = await agent.get('/vocabulary/obscure').expect(200);
+    await agent.put(`/reading/attempts/${passageBody.passage.id}`).send({
+      selectedTokenIds: [selectedToken.id],
+    });
+    await agent
+      .post(`/reading/attempts/${passageBody.passage.id}/complete`)
+      .expect(201);
+
+    const detailResponse = await agent
+      .get(`/vocabulary/${selectedToken.lemma}`)
+      .expect(200);
     const detailBody = detailResponse.body as VocabularyDetailResponse;
 
-    expect(detailBody.item.lemma).toBe('obscure');
+    expect(detailBody.item.lemma).toBe(selectedToken.lemma);
     expect(detailBody.item.contexts).toHaveLength(1);
   });
 });

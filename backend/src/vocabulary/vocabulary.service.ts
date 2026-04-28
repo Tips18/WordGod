@@ -10,8 +10,9 @@ import {
   VocabularyEntryDto,
   VocabularyListResponse,
 } from '@word-god/contracts';
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InMemoryAppStore } from '../store/in-memory-app.store';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { APP_STORE } from '../store/app-store';
+import type { AppStore } from '../store/app-store';
 
 /**
  * `VocabularyService` 负责生词本聚合、排序与详情查询。
@@ -21,16 +22,16 @@ export class VocabularyService {
   /**
    * `constructor` 注入生词服务所需的数据存储。
    */
-  constructor(private readonly store: InMemoryAppStore) {}
+  constructor(@Inject(APP_STORE) private readonly store: AppStore) {}
 
   /**
    * `recordMarks` 将一次段落检测的唯一 lemma 聚合进生词本。
    */
-  recordMarks(
+  async recordMarks(
     userId: string,
     passage: PassageRecord,
     selectedTokens: PassageToken[],
-  ): number {
+  ): Promise<number> {
     const selectedByLemma = new Map<string, PassageToken>();
 
     for (const token of selectedTokens) {
@@ -42,8 +43,11 @@ export class VocabularyService {
     const markedAt = new Date().toISOString();
 
     for (const token of selectedByLemma.values()) {
-      const existingEntry = this.store.findVocabularyEntry(userId, token.lemma);
-      const savedEntry = this.store.saveVocabularyEntry({
+      const existingEntry = await this.store.findVocabularyEntry(
+        userId,
+        token.lemma,
+      );
+      const savedEntry = await this.store.saveVocabularyEntry({
         id: existingEntry?.id,
         userId,
         lemma: token.lemma,
@@ -53,9 +57,9 @@ export class VocabularyService {
         markCount: (existingEntry?.markCount ?? 0) + 1,
         lastMarkedAt: markedAt,
       });
-      const currentContexts = this.store
-        .listVocabularyContexts(savedEntry.id)
-        .sort((left, right) => right.markedAt.localeCompare(left.markedAt));
+      const currentContexts = (
+        await this.store.listVocabularyContexts(savedEntry.id)
+      ).sort((left, right) => right.markedAt.localeCompare(left.markedAt));
       const sentence = passage.sentences[token.sentenceIndex];
       const nextContexts: Omit<VocabularyContextRecord, 'id'>[] = [
         {
@@ -74,7 +78,7 @@ export class VocabularyService {
         })),
       ].slice(0, 3);
 
-      this.store.replaceVocabularyContexts(savedEntry.id, nextContexts);
+      await this.store.replaceVocabularyContexts(savedEntry.id, nextContexts);
     }
 
     return selectedByLemma.size;
@@ -83,9 +87,10 @@ export class VocabularyService {
   /**
    * `listForUser` 返回排序后的生词本列表。
    */
-  listForUser(userId: string): VocabularyListResponse {
-    const items = this.store
-      .listVocabularyEntriesForUser(userId)
+  async listForUser(userId: string): Promise<VocabularyListResponse> {
+    const entries = await this.store.listVocabularyEntriesForUser(userId);
+    const items = await Promise.all(
+      entries
       .sort((left, right) => {
         if (right.markCount !== left.markCount) {
           return right.markCount - left.markCount;
@@ -93,7 +98,8 @@ export class VocabularyService {
 
         return right.lastMarkedAt.localeCompare(left.lastMarkedAt);
       })
-      .map((entry) => this.toDto(entry));
+        .map((entry) => this.toDto(entry)),
+    );
 
     return { items };
   }
@@ -101,24 +107,28 @@ export class VocabularyService {
   /**
    * `getDetail` 返回指定 lemma 的生词详情。
    */
-  getDetail(userId: string, lemma: string): VocabularyDetailResponse {
-    const entry = this.store.findVocabularyEntry(userId, lemma);
+  async getDetail(
+    userId: string,
+    lemma: string,
+  ): Promise<VocabularyDetailResponse> {
+    const entry = await this.store.findVocabularyEntry(userId, lemma);
 
     if (!entry) {
       throw new NotFoundException('生词不存在');
     }
 
     return {
-      item: this.toDto(entry),
+      item: await this.toDto(entry),
     };
   }
 
   /**
    * `toDto` 将生词实体转换为接口返回结构。
    */
-  private toDto(entry: VocabularyEntryRecord): VocabularyEntryDto {
-    const contexts: VocabularyContextDto[] = this.store
-      .listVocabularyContexts(entry.id)
+  private async toDto(entry: VocabularyEntryRecord): Promise<VocabularyEntryDto> {
+    const contexts: VocabularyContextDto[] = (
+      await this.store.listVocabularyContexts(entry.id)
+    )
       .sort((left, right) => right.markedAt.localeCompare(left.markedAt))
       .map((context) => ({
         sentenceText: context.sentenceText,
