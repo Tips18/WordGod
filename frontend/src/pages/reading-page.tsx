@@ -333,16 +333,6 @@ export function ReadingPage() {
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-stone-900/10 bg-stone-950 p-8 text-stone-100 shadow-[0_18px_60px_rgba(34,24,18,0.3)]">
-          <p className="text-xs uppercase tracking-[0.32em] text-stone-400">
-            Flow
-          </p>
-          <div className="mt-4 space-y-3 text-sm leading-7 text-stone-300">
-            <p>背词之后，用真题段落检测识别稳定度。</p>
-            <p>标记并结算后，生词会自动进入你的高优先级复习清单。</p>
-            <p>同一段内同一词只记一次，不同段重复出现时才增加权重。</p>
-          </div>
-        </section>
       </aside>
 
       {authDialogOpen ? (
