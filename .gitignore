@@ -13,4 +13,4 @@ backend/uploads/
 content-cache/
 playwright-report/
 test-results/
-
+.superpowers/
