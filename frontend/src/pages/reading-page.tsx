@@ -231,8 +231,11 @@ export function ReadingPage() {
   }
 
   return (
-    <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-      <article className="relative overflow-hidden rounded-[2rem] border border-stone-900/10 bg-white/80 p-8 shadow-[0_18px_60px_rgba(74,39,24,0.12)]">
+    <section
+      className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(44rem,44rem)_minmax(0,1fr)] xl:items-start 2xl:grid-cols-[minmax(0,1fr)_minmax(44rem,56rem)_minmax(0,1fr)]"
+      data-testid="reading-layout"
+    >
+      <article className="relative overflow-hidden rounded-[2rem] border border-stone-900/10 bg-white/80 p-8 shadow-[0_18px_60px_rgba(74,39,24,0.12)] xl:col-start-2">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-stone-900/10 pb-6">
           <div className="space-y-3">
             <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
@@ -299,7 +302,10 @@ export function ReadingPage() {
         </div>
       </article>
 
-      <aside className="space-y-6">
+      <aside
+        aria-label="Live Note"
+        className="space-y-6 xl:sticky xl:top-6 xl:col-start-3 xl:row-start-1 xl:max-h-[calc(100vh-3rem)] xl:w-full xl:max-w-80 xl:justify-self-start xl:overflow-y-auto"
+      >
         <section className="rounded-[2rem] border border-stone-900/10 bg-white/85 p-8 shadow-[0_18px_60px_rgba(74,39,24,0.12)]">
           <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
             Live Note

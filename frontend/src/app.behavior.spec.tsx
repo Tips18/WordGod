@@ -131,7 +131,64 @@ describe('AppShell behaviors', () => {
 
     expect(tokenButton).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText('晦涩的')).toBeInTheDocument();
-    expect(screen.getByText('晦涩的理论与实践保持一致。')).toBeInTheDocument();
+    expect(screen.getByText('Obscure theories align with practice.')).toBeInTheDocument();
+  });
+
+  it('renders live note as a sticky desktop margin rail', async () => {
+    mockGuestSession();
+    vi.mocked(fetch).mockResolvedValueOnce(
+      createJsonResponse(200, {
+        passage: {
+          id: 'passage-1',
+          examType: 'kaoyan',
+          year: 2024,
+          paper: '英语一',
+          questionType: 'reading',
+          passageIndex: 1,
+          title: 'Memory and Method',
+          content: 'Obscure theories align with practice.',
+          sourceUrl: 'https://example.com',
+        },
+        sentences: [
+          {
+            index: 0,
+            text: 'Obscure theories align with practice.',
+            translation: '晦涩的理论与实践保持一致。',
+          },
+        ],
+        tokens: [
+          {
+            id: 'p1-t1',
+            lemma: 'obscure',
+            surface: 'Obscure',
+            sentenceIndex: 0,
+            partOfSpeech: 'adj.',
+            definitionCn: '晦涩的',
+            translationCn: '晦涩的理论与实践保持一致。',
+            isWord: true,
+          },
+        ],
+        selectedTokenIds: [],
+        requiresAuthToComplete: true,
+      }),
+    );
+
+    renderApp();
+
+    const appContainer = await screen.findByTestId('app-container');
+    const readingLayout = await screen.findByTestId('reading-layout');
+    const liveNote = await screen.findByRole('complementary', {
+      name: 'Live Note',
+    });
+
+    expect(appContainer).toHaveClass('max-w-[104rem]');
+    expect(readingLayout).toHaveClass('xl:grid-cols-[minmax(0,1fr)_minmax(44rem,44rem)_minmax(0,1fr)]');
+    expect(readingLayout).toHaveClass('2xl:grid-cols-[minmax(0,1fr)_minmax(44rem,56rem)_minmax(0,1fr)]');
+    expect(liveNote).toHaveClass('xl:sticky');
+    expect(liveNote).toHaveClass('xl:top-6');
+    expect(liveNote).toHaveClass('xl:justify-self-start');
+    expect(liveNote).toHaveClass('xl:max-h-[calc(100vh-3rem)]');
+    expect(liveNote).toHaveClass('xl:overflow-y-auto');
   });
 
   it('shows the loading error instead of keeping the passage spinner forever', async () => {
@@ -149,9 +206,7 @@ describe('AppShell behaviors', () => {
 
     renderApp(['/auth']);
 
-    expect(
-      await screen.findByRole('button', { name: '已登录' }),
-    ).toBeDisabled();
+    expect(await screen.findByRole('button', { name: '退出登录' })).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: '登录 / 注册' }),
     ).not.toBeInTheDocument();
@@ -432,7 +487,7 @@ describe('AppShell behaviors', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText('晦涩的争论缓慢地重塑公共政策。'),
+        screen.getByText('Obscure debates slowly reshape public policy.'),
       ).toBeInTheDocument();
     });
   });

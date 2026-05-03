@@ -15,7 +15,7 @@
 
 - 路由：`/`、`/auth`、`/vocabulary`、`/vocabulary/:lemma`
 - 主要状态：当前段落全文、当前选中 token、当前临时标记集合、登录状态、生词列表。
-- 视觉系统：V1 前端采用以 `#E6DCCA`、`#FED8B6`、`#FFCFAB`、`#FFC2B0` 为主的暖色纸本文献风格。阅读页以完整段落面板为主，词汇详情以旁批式信息面板承载；认证页、生词本列表和详情页复用同一套纸张面板、细线分隔、暖色状态标签和主按钮样式。
+- 视觉系统：V1 前端采用以 `#E6DCCA`、`#FED8B6`、`#FFCFAB`、`#FFC2B0` 为主的暖色纸本文献风格。阅读页以完整段落面板为主，`1280px` 及以上宽度使用正文居中的三列布局，Live Note 作为右侧固定旁批轨承载词汇详情；认证页、生词本列表和详情页复用同一套纸张面板、细线分隔、暖色状态标签和主按钮样式。
 
 ### 后端
 
@@ -45,9 +45,10 @@
 - `backend/src/reading/passage-translator.ts` 负责 Live Note 的运行时句子翻译：配置 `OPENAI_API_KEY` 时调用 Responses API；成功结果按 `passage.id + passage.content` 做进程内缓存；缺少配置或请求失败时返回“翻译暂不可用，请稍后重试。”，不阻断阅读流程。
 - `backend/src/reading/ecdict-dictionary.service.ts` 负责优先查询已入库 `LexiconEntry`，并在无匹配时懒加载 `词库/ecdict.md` 或 `ECDICT_MARKDOWN_PATH` 指定文件；阅读接口和完成结算都会使用补全后的 token，词典不可用时保留原 token 数据。
 - 前端通过 `packages/contracts/` 共享 DTO 与领域类型，避免重复定义接口结构。
-- `frontend/src/App.tsx` 在应用壳层加载时调用 `/auth/me` 恢复登录态；后端会在 access Cookie 失效但 refresh Cookie 有效时补发 access Cookie。导航在游客状态显示 `/auth` 链接，在已登录状态显示禁用的“已登录”按钮作为状态提示。
+- `frontend/src/App.tsx` 在应用壳层加载时调用 `/auth/me` 恢复登录态；后端会在 access Cookie 失效但 refresh Cookie 有效时补发 access Cookie。导航在游客状态显示 `/auth` 链接，在已登录状态显示“退出登录”按钮。
 - `frontend/src/components/auth-form-card.tsx` 在登录模式显示默认勾选的“30天内记住登录”复选框，独立登录页和阅读拦截弹窗都会把选择写入 `POST /auth/login` 请求体；注册模式不发送该字段。
 - 前端视觉重构只改变现有页面结构和样式，不改变共享 DTO、路由语义或后端 API 合约。
+- 阅读页宽屏旁批轨由 `frontend/src/App.tsx` 的阅读路由宽容器和 `frontend/src/pages/reading-page.tsx` 的三列布局共同实现；该变化只影响布局类名和可访问区域标注，不改变阅读状态、标记同步、结算或生词本数据流。
 - 后端代码质量基线要求 `src/` 与 `test/` 范围内全量 ESLint 无 error 和 warning；格式化统一由 Prettier 处理，e2e 测试的 supertest server 入口需显式类型化。
 - 后端默认允许 `localhost`、`127.0.0.1`、`::1` 本机开发源跨源携带 Cookie 访问，不限制 Vite 实际端口；非本机前端源通过 `CORS_ALLOWED_ORIGINS` 扩展。
 - 阅读页初始接口失败时优先渲染错误态，避免无数据且已失败的查询被误判为仍在加载。

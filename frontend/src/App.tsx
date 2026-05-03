@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, Route, Routes } from 'react-router-dom';
+import { Link, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthPage } from './pages/auth-page';
 import { ReadingPage } from './pages/reading-page';
 import { VocabularyDetailPage } from './pages/vocabulary-detail-page';
@@ -15,8 +15,14 @@ interface User {
  * `LayoutFrame` 为各个页面提供统一的导航与容器。
  */
 function LayoutFrame() {
+  const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const isReadingRoute = location.pathname === '/';
+  const appContainerClassName = [
+    'mx-auto px-4 py-6 sm:px-6 lg:px-8',
+    isReadingRoute ? 'max-w-[104rem]' : 'max-w-7xl',
+  ].join(' ');
 
   useEffect(() => {
     getCurrentUser()
@@ -31,6 +37,9 @@ function LayoutFrame() {
       });
   }, []);
 
+  /**
+   * `handleLogout` 结束当前会话并刷新导航登录状态。
+   */
   async function handleLogout() {
     try {
       await logout();
@@ -50,7 +59,7 @@ function LayoutFrame() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(184,55,43,0.16),_transparent_45%),linear-gradient(180deg,_#f7f0e1_0%,_#f2e6d1_55%,_#eadcc6_100%)] text-stone-900">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className={appContainerClassName} data-testid="app-container">
         <header className="mb-8 flex flex-col gap-6 rounded-[2rem] border border-stone-800/10 bg-white/70 p-6 shadow-[0_24px_80px_rgba(74,39,24,0.14)] backdrop-blur">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl space-y-3">

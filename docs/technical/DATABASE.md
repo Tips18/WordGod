@@ -101,7 +101,7 @@
 - API 运行态通过 `WORD_GOD_STORE` 选择存储：只有显式设置 `prisma` 时使用 `PrismaAppStore` 连接 PostgreSQL，未设置或设置为 `memory` 时使用内存存储与真实长段落种子题库。
 - 认证刷新会话继续使用现有 `AuthSession` 表；`rememberLogin` 只影响 `expiresAt` 和 refresh Cookie 的 Max-Age，不新增数据库表、字段、迁移或唯一约束。
 - 词库导入脚本会将富化后的段落 upsert 到 `Passage`，并按 lemma upsert 到 `LexiconEntry`；用户阅读状态、生词主记录和上下文仍按现有唯一约束结算。
-- 前端“纸本文献感”视觉重构不新增字段、不新增表，也不改变现有唯一约束和结算逻辑；页面仍消费当前 `Passage`、`LexiconEntry`、`ReadingAttempt`、`VocabularyEntry` 和 `VocabularyContext` 数据。
+- 前端“纸本文献感”视觉重构不新增字段、不新增表，也不改变现有唯一约束和结算逻辑；阅读页宽屏正文居中和右侧固定 Live Note 旁批轨只调整前端布局，页面仍消费当前 `Passage`、`LexiconEntry`、`ReadingAttempt`、`VocabularyEntry` 和 `VocabularyContext` 数据。
 - 本机开发 CORS 兼容只调整 API 启动中间件，不新增数据库字段、表、迁移或持久化状态。
 - 内存模式题库扩展为运行时读取抽取缓存或 `词库/` Markdown，不新增数据库表或字段；Prisma 模式仍以 `Passage` 表中的入库结果为准。
 - `词库/ecdict.md` 是 ECDICT Markdown 词典资料，不新增表、字段、迁移或唯一约束；`content:import-ecdict` 会按 lemma 批量 upsert 到现有 `LexiconEntry` 表，阅读接口优先使用该表补全 token 词性和中文释义，不改变 `Passage` 表持久化内容。
