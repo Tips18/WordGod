@@ -74,7 +74,10 @@ function extractMetadataValue(markdown: string, key: string): string {
 /**
  * `isTextHeaderAt` 判断当前行是否为 Text 1-4 标题。
  */
-function isTextHeaderAt(lines: string[], index: number): { textIndex: number; consumed: number } | null {
+function isTextHeaderAt(
+  lines: string[],
+  index: number,
+): { textIndex: number; consumed: number } | null {
   const current = lines[index]?.trim() ?? '';
   const compact = current.replace(/\s+/g, '').toLowerCase();
   const compactMatch = compact.match(/^text([1-4])$/);
@@ -157,7 +160,10 @@ function questionStartForText(textIndex: number): RegExp {
 /**
  * `extractParagraphCandidates` 从 Text 片段中提取正文段落候选。
  */
-function extractParagraphCandidates(lines: string[], textIndex: number): string[] {
+function extractParagraphCandidates(
+  lines: string[],
+  textIndex: number,
+): string[] {
   const paragraphs: string[] = [];
   let currentParagraph: string[] = [];
   const questionStart = questionStartForText(textIndex);
@@ -166,7 +172,11 @@ function extractParagraphCandidates(lines: string[], textIndex: number): string[
     const header = isTextHeaderAt(lines, index);
     const trimmed = lines[index]?.trim() ?? '';
 
-    if (header || questionStart.test(trimmed) || /^Section III\b/i.test(trimmed)) {
+    if (
+      header ||
+      questionStart.test(trimmed) ||
+      /^Section III\b/i.test(trimmed)
+    ) {
       break;
     }
 
@@ -188,15 +198,25 @@ function extractParagraphCandidates(lines: string[], textIndex: number): string[
   return paragraphs.filter((paragraph) => {
     const wordCount = paragraph.split(/\s+/).filter(Boolean).length;
 
-    return wordCount >= 20 && !/^\d{1,2}\./.test(paragraph) && !/^\[[A-D]\]/.test(paragraph);
+    return (
+      wordCount >= 20 &&
+      !/^\d{1,2}\./.test(paragraph) &&
+      !/^\[[A-D]\]/.test(paragraph)
+    );
   });
 }
 
 /**
  * `findTextHeaderPositions` 找到 Markdown 中所有 Text 1-4 标题位置。
  */
-function findTextHeaderPositions(lines: string[]): Array<{ textIndex: number; lineIndex: number; bodyStart: number }> {
-  const positions: Array<{ textIndex: number; lineIndex: number; bodyStart: number }> = [];
+function findTextHeaderPositions(
+  lines: string[],
+): Array<{ textIndex: number; lineIndex: number; bodyStart: number }> {
+  const positions: Array<{
+    textIndex: number;
+    lineIndex: number;
+    bodyStart: number;
+  }> = [];
 
   for (let index = 0; index < lines.length; index += 1) {
     const header = isTextHeaderAt(lines, index);
@@ -217,7 +237,10 @@ function findTextHeaderPositions(lines: string[]): Array<{ textIndex: number; li
 /**
  * `extractReadingTextCandidates` 从词库 Markdown 中抽取 Text 1-4 正文段候选。
  */
-export function extractReadingTextCandidates(markdown: string, fileName: string): ExtractedWordBankPaper {
+export function extractReadingTextCandidates(
+  markdown: string,
+  fileName: string,
+): ExtractedWordBankPaper {
   const year = Number(extractMetadataValue(markdown, 'Year'));
   const paper = normalizePaperName(extractMetadataValue(markdown, 'Paper'));
   const sourceUrl = extractMetadataValue(markdown, 'Source URL');
@@ -231,7 +254,8 @@ export function extractReadingTextCandidates(markdown: string, fileName: string)
     }
 
     const nextPosition = positions.find(
-      (item) => item.lineIndex > position.lineIndex && item.textIndex > textIndex,
+      (item) =>
+        item.lineIndex > position.lineIndex && item.textIndex > textIndex,
     );
     const segmentEnd = nextPosition?.lineIndex ?? lines.length;
     const paragraphs = extractParagraphCandidates(

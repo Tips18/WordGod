@@ -65,7 +65,6 @@ export function VocabularyDetailPage() {
             <article className="rounded-[1.5rem] border border-stone-900/10 bg-[var(--paper-muted)] p-5" key={`${context.passageId}-${context.markedAt}`}>
               <p className="text-xs uppercase tracking-[0.2em] text-stone-500">{context.passageId}</p>
               <p className="mt-3 text-base leading-8 text-stone-900">{context.sentenceText}</p>
-              <p className="mt-3 text-sm leading-7 text-stone-600">{context.sentenceTranslation}</p>
             </article>
           ))}
         </div>

@@ -2,6 +2,7 @@ import { PassageToken } from '@word-god/contracts';
 import { ReadingService } from './reading.service';
 import { InMemoryAppStore } from '../store/in-memory-app.store';
 import { VocabularyService } from '../vocabulary/vocabulary.service';
+import { PassageTranslator } from './passage-translator';
 
 /**
  * `createToken` 构造测试用的段落 token。
@@ -23,6 +24,12 @@ describe('ReadingService', () => {
   let store: InMemoryAppStore;
   let vocabularyService: VocabularyService;
   let readingService: ReadingService;
+  let passageTranslator: jest.Mocked<
+    Pick<PassageTranslator, 'translatePassage'>
+  >;
+  let dictionaryService: {
+    enrichTokens: jest.Mock<Promise<PassageToken[]>, [PassageToken[]]>;
+  };
 
   beforeEach(() => {
     store = new InMemoryAppStore({
@@ -160,7 +167,22 @@ describe('ReadingService', () => {
       ],
     });
     vocabularyService = new VocabularyService(store);
-    readingService = new ReadingService(store, vocabularyService);
+    passageTranslator = {
+      translatePassage: jest.fn((passage) => Promise.resolve(passage)),
+    };
+    dictionaryService = {
+      enrichTokens: jest.fn((tokens) => Promise.resolve(tokens)),
+    };
+    readingService = new ReadingService(
+      store,
+      vocabularyService,
+      passageTranslator as PassageTranslator,
+      dictionaryService,
+    );
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('replaces the full selected token set when syncing an attempt', async () => {
@@ -186,6 +208,59 @@ describe('ReadingService', () => {
     });
   });
 
+  it('returns runtime translated passage data', async () => {
+    const runtimeTranslation = '运行时翻译后的原句。';
+
+    jest.spyOn(Math, 'random').mockReturnValue(0);
+    passageTranslator.translatePassage.mockImplementation((passage) =>
+      Promise.resolve({
+        ...passage,
+        sentences: passage.sentences.map((sentence) => ({
+          ...sentence,
+          translation: runtimeTranslation,
+        })),
+        tokens: passage.tokens.map((token) => ({
+          ...token,
+          translationCn: runtimeTranslation,
+        })),
+      }),
+    );
+
+    const response = await readingService.getRandomPassage();
+
+    expect(response.sentences[0].translation).toBe(runtimeTranslation);
+    expect(response.tokens[0].translationCn).toBe(runtimeTranslation);
+    expect(passageTranslator.translatePassage).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'passage-1' }),
+    );
+  });
+
+  it('returns token definitions enriched from the downloaded dictionary', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(0);
+    dictionaryService.enrichTokens.mockImplementation((tokens) =>
+      Promise.resolve(
+        tokens.map((token) =>
+          token.lemma === 'align'
+            ? {
+                ...token,
+                partOfSpeech: 'v.',
+                definitionCn: '使一致；排列',
+              }
+            : token,
+        ),
+      ),
+    );
+
+    const response = await readingService.getRandomPassage();
+    const alignToken = response.tokens.find((token) => token.lemma === 'align');
+
+    expect(dictionaryService.enrichTokens).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ lemma: 'align' })]),
+    );
+    expect(alignToken?.partOfSpeech).toBe('v.');
+    expect(alignToken?.definitionCn).toBe('使一致；排列');
+  });
+
   it('completes a passage, counts each lemma once, and returns a different next passage', async () => {
     await readingService.syncAttempt('user-1', 'passage-1', {
       selectedTokenIds: ['p1-t1', 'p1-t2', 'p1-t3'],
@@ -201,6 +276,65 @@ describe('ReadingService', () => {
     expect(completion.nextPassage.passage.id).not.toBe('passage-1');
     expect(items.find((item) => item.lemma === 'obscure')?.markCount).toBe(1);
     expect(items.find((item) => item.lemma === 'align')?.markCount).toBe(1);
+  });
+
+  it('records downloaded dictionary definitions when completing a passage', async () => {
+    dictionaryService.enrichTokens.mockImplementation((tokens) =>
+      Promise.resolve(
+        tokens.map((token) =>
+          token.lemma === 'align'
+            ? {
+                ...token,
+                partOfSpeech: 'v.',
+                definitionCn: '使一致；排列',
+              }
+            : token,
+        ),
+      ),
+    );
+
+    await readingService.syncAttempt('user-1', 'passage-1', {
+      selectedTokenIds: ['p1-t3'],
+    });
+    await readingService.completeAttempt('user-1', 'passage-1');
+
+    const detail = await vocabularyService.getDetail('user-1', 'align');
+
+    expect(detail.item.partOfSpeech).toBe('v.');
+    expect(detail.item.definitionCn).toBe('使一致；排列');
+  });
+
+  it('records runtime translated sentence context when completing a passage', async () => {
+    const runtimeTranslation = '晦涩一词所在原句的运行时翻译。';
+
+    passageTranslator.translatePassage.mockImplementation((passage) =>
+      Promise.resolve(
+        passage.id === 'passage-1'
+          ? {
+              ...passage,
+              sentences: passage.sentences.map((sentence) => ({
+                ...sentence,
+                translation: runtimeTranslation,
+              })),
+              tokens: passage.tokens.map((token) => ({
+                ...token,
+                translationCn: runtimeTranslation,
+              })),
+            }
+          : passage,
+      ),
+    );
+
+    await readingService.syncAttempt('user-1', 'passage-1', {
+      selectedTokenIds: ['p1-t1'],
+    });
+    await readingService.completeAttempt('user-1', 'passage-1');
+
+    const detail = await vocabularyService.getDetail('user-1', 'obscure');
+
+    expect(detail.item.contexts[0].sentenceTranslation).toBe(
+      runtimeTranslation,
+    );
   });
 
   it('increments repeated lemmas across passages and keeps only the latest three contexts', async () => {

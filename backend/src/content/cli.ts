@@ -1,6 +1,8 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
+import { upsertEcdictMarkdownEntries } from './ecdict.importer';
 import {
   extractPassageSegments,
   ingestNormalizedPassages,
@@ -33,6 +35,30 @@ const translatedFile = join(cacheRoot, 'translated-passages.json');
 const ingestedPassagesFile = join(cacheRoot, 'ingested-passages.json');
 const ingestedLexiconFile = join(cacheRoot, 'ingested-lexicon.json');
 const wordBankImportPaths = createWordBankImportPaths(workspaceRoot);
+const defaultEcdictMarkdownFile = join(workspaceRoot, '词库', 'ecdict.md');
+
+/**
+ * `loadWorkspaceEnv` 为直接运行的内容命令加载仓库根目录环境变量。
+ */
+function loadWorkspaceEnv() {
+  const envFile = join(workspaceRoot, '.env');
+
+  if (!existsSync(envFile)) {
+    return;
+  }
+
+  for (const line of readFileSync(envFile, 'utf8').split(/\r?\n/)) {
+    const match = line.match(/^\s*([^#=\s]+)\s*=\s*(.*)\s*$/);
+
+    if (!match || process.env[match[1]] !== undefined) {
+      continue;
+    }
+
+    process.env[match[1]] = match[2].replace(/^["']|["']$/g, '');
+  }
+}
+
+loadWorkspaceEnv();
 
 const fixtures: SourceFixture[] = [
   {
@@ -187,6 +213,20 @@ function hasFlag(flag: string): boolean {
 }
 
 /**
+ * `getEcdictMarkdownFile` 返回 ECDICT 入库命令使用的 Markdown 文件。
+ */
+function getEcdictMarkdownFile(): string {
+  const dictionaryPath =
+    process.env.ECDICT_MARKDOWN_PATH ?? defaultEcdictMarkdownFile;
+
+  if (!existsSync(dictionaryPath)) {
+    throw new Error(`ECDICT Markdown 文件不存在：${dictionaryPath}`);
+  }
+
+  return dictionaryPath;
+}
+
+/**
  * `runExtractWordBank` 从词库 Markdown 抽取每篇 Text 的一个随机正文段。
  */
 async function runExtractWordBank() {
@@ -209,7 +249,10 @@ async function runCreateTranslationBatch() {
 
   await writeOpenAiBatchInput(wordBankImportPaths, selected, getOpenAiModel());
 
-  const metadata = await createOpenAiBatch(wordBankImportPaths, getOpenAiApiKey());
+  const metadata = await createOpenAiBatch(
+    wordBankImportPaths,
+    getOpenAiApiKey(),
+  );
 
   console.log(`Created OpenAI batch ${metadata.batchId}.`);
 }
@@ -224,7 +267,8 @@ async function runImportTranslationBatch() {
     await fetchOpenAiBatchOutput(wordBankImportPaths, getOpenAiApiKey());
   }
 
-  const { enrichments, errors } = await readBatchEnrichments(wordBankImportPaths);
+  const { enrichments, errors } =
+    await readBatchEnrichments(wordBankImportPaths);
   const prisma = new PrismaClient();
 
   try {
@@ -258,11 +302,32 @@ async function runImportWordBank() {
     return;
   }
 
-  const metadata = await createOpenAiBatch(wordBankImportPaths, getOpenAiApiKey());
+  const metadata = await createOpenAiBatch(
+    wordBankImportPaths,
+    getOpenAiApiKey(),
+  );
 
   console.log(
     `Created OpenAI batch ${metadata.batchId}. Re-run import-translation-batch after it completes.`,
   );
+}
+
+/**
+ * `runImportEcdict` 将下载的 ECDICT Markdown 词典写入 PostgreSQL。
+ */
+async function runImportEcdict() {
+  const prisma = new PrismaClient();
+
+  try {
+    const importedCount = await upsertEcdictMarkdownEntries(
+      prisma,
+      getEcdictMarkdownFile(),
+    );
+
+    console.log(`Imported ${importedCount} ECDICT lexicon entries.`);
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
 /**
@@ -308,6 +373,11 @@ async function main() {
 
   if (command === 'import-word-bank') {
     await runImportWordBank();
+    return;
+  }
+
+  if (command === 'import-ecdict') {
+    await runImportEcdict();
     return;
   }
 

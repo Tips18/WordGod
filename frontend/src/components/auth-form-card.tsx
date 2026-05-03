@@ -4,6 +4,7 @@ import type { FormEvent } from 'react';
 export interface AuthFormValues {
   email: string;
   password: string;
+  rememberLogin: boolean;
 }
 
 interface AuthFormCardProps {
@@ -27,6 +28,7 @@ export function AuthFormCard({
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberLogin, setRememberLogin] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +41,7 @@ export function AuthFormCard({
     setError(null);
 
     try {
-      await onSubmit({ email, password }, mode);
+      await onSubmit({ email, password, rememberLogin }, mode);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : '请求失败');
     } finally {
@@ -83,6 +85,18 @@ export function AuthFormCard({
         />
       </label>
 
+      {mode === 'login' ? (
+        <label className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-[var(--paper-muted)] px-4 py-3 text-sm text-stone-700">
+          <input
+            checked={rememberLogin}
+            className="h-4 w-4 accent-[var(--accent)]"
+            type="checkbox"
+            onChange={(event) => setRememberLogin(event.target.checked)}
+          />
+          <span>30天内记住登录</span>
+        </label>
+      ) : null}
+
       {error ? <p className="rounded-2xl bg-rose-100 px-4 py-3 text-sm text-rose-700">{error}</p> : null}
 
       <div className="flex flex-col gap-3 sm:flex-row">
@@ -91,14 +105,14 @@ export function AuthFormCard({
           disabled={submitting}
           type="submit"
         >
-          {submitting ? '提交中...' : submitLabel}
+          {submitting ? '确定中...' : submitLabel}
         </button>
         <button
           className="rounded-full border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-700 transition hover:border-stone-900 hover:text-stone-950"
           type="button"
           onClick={toggleMode}
         >
-          {mode === 'login' ? '改为注册' : '改为登录'}
+          {mode === 'login' ? '去注册' : '去登录'}
         </button>
       </div>
 

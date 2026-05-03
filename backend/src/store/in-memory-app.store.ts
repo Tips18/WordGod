@@ -268,6 +268,13 @@ export class InMemoryAppStore implements AppStore {
   }
 
   /**
+   * `findLexiconEntry` 按 lemma 查询单个词典条目。
+   */
+  findLexiconEntry(lemma: string): LexiconEntryRecord | undefined {
+    return this.lexiconEntries.find((entry) => entry.lemma === lemma);
+  }
+
+  /**
    * `listLexiconEntries` 返回当前词典数据。
    */
   listLexiconEntries(): LexiconEntryRecord[] {

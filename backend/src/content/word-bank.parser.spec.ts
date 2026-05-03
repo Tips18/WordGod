@@ -25,9 +25,7 @@ describe('word bank parser', () => {
     expect(extracted.year).toBe(2022);
     expect(extracted.paper).toBe('英语一');
     expect(extracted.texts).toHaveLength(4);
-    expect(extracted.texts.map((text) => text.textIndex)).toEqual([
-      1, 2, 3, 4,
-    ]);
+    expect(extracted.texts.map((text) => text.textIndex)).toEqual([1, 2, 3, 4]);
     expect(extracted.texts[0].paragraphs.length).toBeGreaterThan(0);
     expect(extracted.texts[0].paragraphs[0]).toContain('People often complain');
   });

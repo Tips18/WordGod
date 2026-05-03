@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
 import type { LoginRequest, RegisterRequest } from '@word-god/contracts';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
@@ -14,6 +14,26 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   /**
+   * `me` 获取当前登录用户信息。
+   */
+  @Get('me')
+  async me(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<{ user: { id: string; email: string } } | { user: null }> {
+    const session = await this.authService.resolveSessionFromCookies(
+      request,
+      response,
+    );
+
+    if (!session) {
+      return { user: null };
+    }
+
+    return { user: session.user };
+  }
+
+  /**
    * `register` 创建用户并写入认证 cookies。
    */
   @Post('register')
@@ -27,6 +47,7 @@ export class AuthController {
       response,
       session.accessToken,
       session.refreshToken,
+      session.refreshTokenMaxAgeMs,
     );
     return { user: session.user };
   }
@@ -45,6 +66,7 @@ export class AuthController {
       response,
       session.accessToken,
       session.refreshToken,
+      session.refreshTokenMaxAgeMs,
     );
     return { user: session.user };
   }

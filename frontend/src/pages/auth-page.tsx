@@ -15,10 +15,15 @@ export function AuthPage() {
    * `handleSubmit` 根据当前模式执行登录或注册并跳转。
    */
   async function handleSubmit(values: AuthFormValues, mode: 'login' | 'register') {
+    const credentials = {
+      email: values.email,
+      password: values.password,
+    };
+
     if (mode === 'register') {
-      await register(values);
+      await register(credentials);
     } else {
-      await login(values);
+      await login({ ...credentials, rememberLogin: values.rememberLogin });
     }
 
     navigate(redirectTo, { replace: true });
@@ -39,7 +44,7 @@ export function AuthPage() {
       </article>
 
       <aside className="rounded-[2rem] border border-stone-900/10 bg-white/90 p-8 shadow-[0_18px_60px_rgba(74,39,24,0.12)]">
-        <AuthFormCard hint="Account" onSubmit={handleSubmit} submitLabel="提交" title="登录 / 注册" />
+        <AuthFormCard hint="Account" onSubmit={handleSubmit} submitLabel="确定" title="登录 / 注册" />
       </aside>
     </section>
   );

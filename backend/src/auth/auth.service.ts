@@ -13,6 +13,16 @@ import type { AppStore } from '../store/app-store';
 
 const ACCESS_COOKIE = 'word_god_access_token';
 const REFRESH_COOKIE = 'word_god_refresh_token';
+const ACCESS_COOKIE_MAX_AGE_MS = 15 * 60 * 1000;
+const REMEMBER_REFRESH_COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const SHORT_REFRESH_COOKIE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * `normalizeEmail` 将邮箱输入规整为认证查找和持久化使用的稳定格式。
+ */
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
 
 /**
  * `AuthSessionResult` 描述认证服务返回的完整会话结果。
@@ -20,6 +30,7 @@ const REFRESH_COOKIE = 'word_god_refresh_token';
 export interface AuthSessionResult extends AuthResponse {
   accessToken: string;
   refreshToken: string;
+  refreshTokenMaxAgeMs: number;
 }
 
 /**
@@ -55,7 +66,8 @@ export class AuthService {
    * `register` 创建新用户并签发访问令牌与刷新令牌。
    */
   async register(input: RegisterRequest): Promise<AuthSessionResult> {
-    const existingUser = await this.store.findUserByEmail(input.email);
+    const email = normalizeEmail(input.email);
+    const existingUser = await this.store.findUserByEmail(email);
 
     if (existingUser) {
       throw new UnauthorizedException('邮箱已被注册');
@@ -64,20 +76,25 @@ export class AuthService {
     const now = new Date().toISOString();
     const passwordHash = await hash(input.password, 10);
     const savedUser = await this.store.saveUser({
-      email: input.email,
+      email,
       passwordHash,
       createdAt: now,
       updatedAt: now,
     });
 
-    return this.createSession(savedUser.id, savedUser.email);
+    return this.createSession(
+      savedUser.id,
+      savedUser.email,
+      REMEMBER_REFRESH_COOKIE_MAX_AGE_MS,
+    );
   }
 
   /**
    * `login` 校验邮箱密码并签发新会话。
    */
   async login(input: LoginRequest): Promise<AuthSessionResult> {
-    const savedUser = await this.store.findUserByEmail(input.email);
+    const email = normalizeEmail(input.email);
+    const savedUser = await this.store.findUserByEmail(email);
 
     if (!savedUser) {
       throw new UnauthorizedException('邮箱或密码错误');
@@ -89,7 +106,13 @@ export class AuthService {
       throw new UnauthorizedException('邮箱或密码错误');
     }
 
-    return this.createSession(savedUser.id, savedUser.email);
+    return this.createSession(
+      savedUser.id,
+      savedUser.email,
+      input.rememberLogin === false
+        ? SHORT_REFRESH_COOKIE_MAX_AGE_MS
+        : REMEMBER_REFRESH_COOKIE_MAX_AGE_MS,
+    );
   }
 
   /**
@@ -113,16 +136,17 @@ export class AuthService {
     response: Response,
     accessToken: string,
     refreshToken: string,
+    refreshTokenMaxAgeMs = REMEMBER_REFRESH_COOKIE_MAX_AGE_MS,
   ): void {
     response.cookie(ACCESS_COOKIE, accessToken, {
       httpOnly: true,
       sameSite: 'lax',
-      maxAge: 15 * 60 * 1000,
+      maxAge: ACCESS_COOKIE_MAX_AGE_MS,
     });
     response.cookie(REFRESH_COOKIE, refreshToken, {
       httpOnly: true,
       sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
+      maxAge: refreshTokenMaxAgeMs,
     });
   }
 
@@ -201,7 +225,7 @@ export class AuthService {
       response.cookie(ACCESS_COOKIE, nextAccessToken, {
         httpOnly: true,
         sameSite: 'lax',
-        maxAge: 15 * 60 * 1000,
+        maxAge: ACCESS_COOKIE_MAX_AGE_MS,
       });
 
       return {
@@ -239,12 +263,13 @@ export class AuthService {
   private async createSession(
     userId: string,
     email: string,
+    refreshTokenMaxAgeMs: number,
   ): Promise<AuthSessionResult> {
     const refreshToken = randomUUID();
     const refreshTokenHash = await hash(refreshToken, 10);
     const now = new Date();
     const expiresAt = new Date(
-      now.getTime() + 30 * 24 * 60 * 60 * 1000,
+      now.getTime() + refreshTokenMaxAgeMs,
     ).toISOString();
     const accessToken = await this.jwtService.signAsync({
       sub: userId,
@@ -265,6 +290,31 @@ export class AuthService {
       },
       accessToken,
       refreshToken,
+      refreshTokenMaxAgeMs,
     };
+  }
+
+  /**
+   * `verifyAccessToken` 验证访问令牌并返回用户ID。
+   */
+  verifyAccessToken(accessToken: string): { userId: string } | null {
+    try {
+      const payload = this.jwtService.verify<{ sub: string }>(accessToken, {
+        secret: this.jwtSecret,
+      });
+      return { userId: payload.sub };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * `getUserById` 根据用户ID获取用户信息。
+   */
+  async getUserById(
+    userId: string,
+  ): Promise<{ id: string; email: string } | null> {
+    const user = await this.store.findUserById(userId);
+    return user || null;
   }
 }

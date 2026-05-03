@@ -7,11 +7,14 @@
 - `POST /auth/register`
 - `POST /auth/login`
 - `POST /auth/logout`
+- `GET /auth/me`
 - `GET /reading/passages/random`
 - `PUT /reading/attempts/:passageId`
 - `POST /reading/attempts/:passageId/complete`
 - `GET /vocabulary`
 - `GET /vocabulary/:lemma`
+
+认证接口会把邮箱统一规整为去除首尾空格的小写格式；Prisma 模式下邮箱查找为大小写不敏感匹配，避免注册过的账号因登录输入大小写不同而被判定为不存在。登录请求的 `rememberLogin` 缺省为 `true` 并签发 30 天刷新会话；传入 `false` 时签发 24 小时短刷新会话。`GET /auth/me` 会在 access Cookie 失效但 refresh Cookie 有效时恢复用户并补发 access Cookie。
 
 ## 主要命令
 
@@ -29,6 +32,7 @@ corepack pnpm --filter backend content:extract-word-bank
 corepack pnpm --filter backend content:create-translation-batch
 corepack pnpm --filter backend content:import-translation-batch
 corepack pnpm --filter backend content:import-word-bank
+corepack pnpm --filter backend content:import-ecdict
 ```
 
 ## 存储模式
@@ -63,4 +67,4 @@ corepack pnpm --filter backend start:dev
 - `openai-translation-batch-output.jsonl`
 - `openai-translation-import-errors.json`
 
-`content:create-translation-batch` 和 `content:import-translation-batch` 需要 `OPENAI_API_KEY`。Batch 输出会先经过 schema 校验，无法解析的行会写入导入错误记录；成功富化的段落按稳定段落 id upsert 到 PostgreSQL，同时按 lemma upsert 词典词条。
+`content:create-translation-batch` 和 `content:import-translation-batch` 需要 `OPENAI_API_KEY`。Batch 输出会先经过 schema 校验，无法解析的行会写入导入错误记录；成功富化的段落按稳定段落 id upsert 到 PostgreSQL，同时按 lemma upsert 词典词条。`content:import-ecdict` 会读取 `ECDICT_MARKDOWN_PATH` 或默认 `词库/ecdict.md`，将 ECDICT 全量词条批量 upsert 到 `LexiconEntry`。

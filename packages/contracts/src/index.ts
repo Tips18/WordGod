@@ -102,6 +102,7 @@ export interface RegisterRequest {
 export interface LoginRequest {
   email: string;
   password: string;
+  rememberLogin?: boolean;
 }
 
 /**
@@ -140,4 +141,3 @@ export interface VocabularyListResponse {
 export interface VocabularyDetailResponse {
   item: VocabularyEntryDto;
 }
-

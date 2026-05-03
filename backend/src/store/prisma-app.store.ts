@@ -225,8 +225,13 @@ export class PrismaAppStore implements AppStore {
    * `findUserByEmail` 根据邮箱查询用户。
    */
   async findUserByEmail(email: string): Promise<UserRecord | undefined> {
-    const user = await this.prisma.user.findUnique({
-      where: { email },
+    const user = await this.prisma.user.findFirst({
+      where: {
+        email: {
+          equals: email.trim(),
+          mode: Prisma.QueryMode.insensitive,
+        },
+      },
     });
 
     return user ? toUserRecord(user) : undefined;
@@ -246,7 +251,9 @@ export class PrismaAppStore implements AppStore {
   /**
    * `saveUser` 写入或更新用户实体。
    */
-  async saveUser(user: Omit<UserRecord, 'id'> & { id?: string }): Promise<UserRecord> {
+  async saveUser(
+    user: Omit<UserRecord, 'id'> & { id?: string },
+  ): Promise<UserRecord> {
     const savedUser = user.id
       ? await this.prisma.user.upsert({
           where: { id: user.id },
@@ -410,7 +417,9 @@ export class PrismaAppStore implements AppStore {
   /**
    * `listVocabularyEntriesForUser` 返回用户全部生词主记录。
    */
-  async listVocabularyEntriesForUser(userId: string): Promise<VocabularyEntryRecord[]> {
+  async listVocabularyEntriesForUser(
+    userId: string,
+  ): Promise<VocabularyEntryRecord[]> {
     const entries = await this.prisma.vocabularyEntry.findMany({
       where: { userId },
     });
@@ -475,7 +484,9 @@ export class PrismaAppStore implements AppStore {
   /**
    * `listVocabularyContexts` 返回指定词条的上下文。
    */
-  async listVocabularyContexts(vocabularyEntryId: string): Promise<VocabularyContextRecord[]> {
+  async listVocabularyContexts(
+    vocabularyEntryId: string,
+  ): Promise<VocabularyContextRecord[]> {
     const contexts = await this.prisma.vocabularyContext.findMany({
       where: { vocabularyEntryId },
     });
@@ -506,6 +517,19 @@ export class PrismaAppStore implements AppStore {
         }),
       ),
     ]);
+  }
+
+  /**
+   * `findLexiconEntry` 按 lemma 查询单个词典条目。
+   */
+  async findLexiconEntry(
+    lemma: string,
+  ): Promise<LexiconEntryRecord | undefined> {
+    const entry = await this.prisma.lexiconEntry.findUnique({
+      where: { lemma },
+    });
+
+    return entry ? toLexiconEntryRecord(entry) : undefined;
   }
 
   /**

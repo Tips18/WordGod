@@ -43,7 +43,9 @@ export interface OpenAiBatchMetadata {
 /**
  * `createWordBankImportPaths` 根据工作区根目录生成导入产物路径。
  */
-export function createWordBankImportPaths(workspaceRoot: string): WordBankImportPaths {
+export function createWordBankImportPaths(
+  workspaceRoot: string,
+): WordBankImportPaths {
   const cacheRoot = join(workspaceRoot, 'content-cache');
 
   return {
@@ -68,11 +70,15 @@ async function ensureCacheRoot(paths: WordBankImportPaths): Promise<void> {
 /**
  * `listWordBankMarkdownFiles` 返回需要处理的词库 Markdown 文件。
  */
-async function listWordBankMarkdownFiles(paths: WordBankImportPaths): Promise<string[]> {
+async function listWordBankMarkdownFiles(
+  paths: WordBankImportPaths,
+): Promise<string[]> {
   const fileNames = await readdir(paths.wordBankRoot);
 
   return fileNames
-    .filter((fileName) => /^kaoyan-english-\d{4}-english-(i|ii)\.md$/.test(fileName))
+    .filter((fileName) =>
+      /^kaoyan-english-\d{4}-english-(i|ii)\.md$/.test(fileName),
+    )
     .sort()
     .map((fileName) => join(paths.wordBankRoot, fileName));
 }
@@ -87,7 +93,9 @@ export async function extractWordBankPassages(
   await ensureCacheRoot(paths);
 
   if (!forceResample && existsSync(paths.extractedPassagesFile)) {
-    return JSON.parse(await readFile(paths.extractedPassagesFile, 'utf8')) as SelectedWordBankPassage[];
+    return JSON.parse(
+      await readFile(paths.extractedPassagesFile, 'utf8'),
+    ) as SelectedWordBankPassage[];
   }
 
   const files = await listWordBankMarkdownFiles(paths);
@@ -128,11 +136,18 @@ export async function writeOpenAiBatchInput(
 /**
  * `uploadOpenAiBatchInput` 上传 Batch 输入文件并返回文件 id。
  */
-async function uploadOpenAiBatchInput(apiKey: string, batchInput: string): Promise<string> {
+async function uploadOpenAiBatchInput(
+  apiKey: string,
+  batchInput: string,
+): Promise<string> {
   const formData = new FormData();
 
   formData.append('purpose', 'batch');
-  formData.append('file', new Blob([batchInput], { type: 'application/jsonl' }), 'word-god-batch.jsonl');
+  formData.append(
+    'file',
+    new Blob([batchInput], { type: 'application/jsonl' }),
+    'word-god-batch.jsonl',
+  );
 
   const response = await fetch('https://api.openai.com/v1/files', {
     method: 'POST',
@@ -141,7 +156,10 @@ async function uploadOpenAiBatchInput(apiKey: string, batchInput: string): Promi
     },
     body: formData,
   });
-  const payload = (await response.json()) as { id?: string; error?: { message?: string } };
+  const payload = (await response.json()) as {
+    id?: string;
+    error?: { message?: string };
+  };
 
   if (!response.ok || !payload.id) {
     throw new Error(payload.error?.message ?? 'OpenAI 文件上传失败');
@@ -192,7 +210,11 @@ export async function createOpenAiBatch(
     createdAt: new Date().toISOString(),
   };
 
-  await writeFile(paths.batchMetaFile, JSON.stringify(metadata, null, 2), 'utf8');
+  await writeFile(
+    paths.batchMetaFile,
+    JSON.stringify(metadata, null, 2),
+    'utf8',
+  );
 
   return metadata;
 }
@@ -204,12 +226,17 @@ export async function fetchOpenAiBatchOutput(
   paths: WordBankImportPaths,
   apiKey: string,
 ): Promise<void> {
-  const metadata = JSON.parse(await readFile(paths.batchMetaFile, 'utf8')) as OpenAiBatchMetadata;
-  const batchResponse = await fetch(`https://api.openai.com/v1/batches/${metadata.batchId}`, {
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
+  const metadata = JSON.parse(
+    await readFile(paths.batchMetaFile, 'utf8'),
+  ) as OpenAiBatchMetadata;
+  const batchResponse = await fetch(
+    `https://api.openai.com/v1/batches/${metadata.batchId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
     },
-  });
+  );
   const batchPayload = (await batchResponse.json()) as {
     output_file_id?: string | null;
     error?: { message?: string };
@@ -217,14 +244,19 @@ export async function fetchOpenAiBatchOutput(
   const outputFileId = batchPayload.output_file_id ?? metadata.outputFileId;
 
   if (!batchResponse.ok || !outputFileId) {
-    throw new Error(batchPayload.error?.message ?? 'OpenAI Batch 尚未生成输出文件');
+    throw new Error(
+      batchPayload.error?.message ?? 'OpenAI Batch 尚未生成输出文件',
+    );
   }
 
-  const outputResponse = await fetch(`https://api.openai.com/v1/files/${outputFileId}/content`, {
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
+  const outputResponse = await fetch(
+    `https://api.openai.com/v1/files/${outputFileId}/content`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
     },
-  });
+  );
 
   if (!outputResponse.ok) {
     throw new Error('OpenAI Batch 输出下载失败');
@@ -238,7 +270,10 @@ export async function fetchOpenAiBatchOutput(
  */
 export async function readBatchEnrichments(
   paths: WordBankImportPaths,
-): Promise<{ enrichments: Map<string, EnrichedPassage>; errors: Array<{ line: string; message: string }> }> {
+): Promise<{
+  enrichments: Map<string, EnrichedPassage>;
+  errors: Array<{ line: string; message: string }>;
+}> {
   const enrichments = new Map<string, EnrichedPassage>();
   const errors: Array<{ line: string; message: string }> = [];
   const lines = (await readFile(paths.batchOutputFile, 'utf8'))
@@ -258,7 +293,11 @@ export async function readBatchEnrichments(
     }
   }
 
-  await writeFile(paths.importErrorsFile, JSON.stringify(errors, null, 2), 'utf8');
+  await writeFile(
+    paths.importErrorsFile,
+    JSON.stringify(errors, null, 2),
+    'utf8',
+  );
 
   return { enrichments, errors };
 }

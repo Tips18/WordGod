@@ -27,7 +27,8 @@
     "content:extract-word-bank": "tsx src/content/cli.ts extract-word-bank",
     "content:create-translation-batch": "tsx src/content/cli.ts create-translation-batch",
     "content:import-translation-batch": "tsx src/content/cli.ts import-translation-batch",
-    "content:import-word-bank": "tsx src/content/cli.ts import-word-bank"
+    "content:import-word-bank": "tsx src/content/cli.ts import-word-bank",
+    "content:import-ecdict": "tsx src/content/cli.ts import-ecdict"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

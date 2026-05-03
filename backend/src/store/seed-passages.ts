@@ -1,4 +1,11 @@
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { PassageSentence, PassageToken } from '@word-god/contracts';
+import {
+  extractReadingTextCandidates,
+  selectWordBankPassages,
+  type SelectedWordBankPassage,
+} from '../content/word-bank.parser';
 import { PassageRecord } from './store.types';
 
 interface SeedPassageInput {
@@ -10,6 +17,8 @@ interface SeedPassageInput {
   content: string;
   sourceUrl: string;
 }
+
+const wordBankFilePattern = /^kaoyan-english-\d{4}-english-(i|ii)\.md$/;
 
 /**
  * `guessPartOfSpeech` 为内置种子 token 生成轻量级词性。
@@ -120,10 +129,123 @@ function createSeedPassage(input: SeedPassageInput): PassageRecord {
 }
 
 /**
- * `seedPassages` 提供内存模式使用的真实考研阅读长段落。
+ * `findWorkspaceRoot` 从当前目录向上查找包含词库目录的仓库根目录。
  */
-export const seedPassages: PassageRecord[] = [
-  createSeedPassage({
+function findWorkspaceRoot(startDirectory = process.cwd()): string | null {
+  let currentDirectory = resolve(startDirectory);
+
+  for (let depth = 0; depth < 6; depth += 1) {
+    if (existsSync(join(currentDirectory, '词库'))) {
+      return currentDirectory;
+    }
+
+    const parentDirectory = dirname(currentDirectory);
+
+    if (parentDirectory === currentDirectory) {
+      return null;
+    }
+
+    currentDirectory = parentDirectory;
+  }
+
+  return null;
+}
+
+/**
+ * `toSeedInput` 将抽取出的段落转换为内存种子创建参数。
+ */
+function toSeedInput(passage: SelectedWordBankPassage): SeedPassageInput {
+  return {
+    id: passage.id,
+    year: passage.year,
+    paper: passage.paper,
+    passageIndex: passage.passageIndex,
+    title: passage.title,
+    content: passage.content,
+    sourceUrl: passage.sourceUrl,
+  };
+}
+
+/**
+ * `isExpandedSeedInputList` 判断种子列表是否已经超过旧兜底题库规模。
+ */
+function isExpandedSeedInputList(inputs: SeedPassageInput[]): boolean {
+  return inputs.length > fallbackSeedInputs.length;
+}
+
+/**
+ * `loadCachedSeedInputs` 优先读取内容抽取命令已经生成的段落缓存。
+ */
+function loadCachedSeedInputs(
+  workspaceRoot: string,
+): SeedPassageInput[] | null {
+  const cacheFile = join(
+    workspaceRoot,
+    'content-cache',
+    'word-bank-extracted-passages.json',
+  );
+
+  if (!existsSync(cacheFile)) {
+    return null;
+  }
+
+  const cachedPassages = JSON.parse(
+    readFileSync(cacheFile, 'utf8'),
+  ) as SelectedWordBankPassage[];
+  const seedInputs = cachedPassages.map(toSeedInput);
+
+  return isExpandedSeedInputList(seedInputs) ? seedInputs : null;
+}
+
+/**
+ * `extractSeedInputsFromWordBank` 从仓库词库 Markdown 中生成内存题库种子。
+ */
+function extractSeedInputsFromWordBank(
+  workspaceRoot: string,
+): SeedPassageInput[] {
+  const wordBankRoot = join(workspaceRoot, '词库');
+  const wordBankFiles = readdirSync(wordBankRoot)
+    .filter((fileName) => wordBankFilePattern.test(fileName))
+    .sort();
+  const seedInputs: SeedPassageInput[] = [];
+
+  for (const fileName of wordBankFiles) {
+    const markdown = readFileSync(join(wordBankRoot, fileName), 'utf8');
+    const extracted = extractReadingTextCandidates(markdown, fileName);
+
+    seedInputs.push(
+      ...selectWordBankPassages(extracted, () => 0).map(toSeedInput),
+    );
+  }
+
+  return seedInputs;
+}
+
+/**
+ * `loadSeedInputs` 加载完整题库种子，失败时退回内置兜底段落。
+ */
+function loadSeedInputs(): SeedPassageInput[] {
+  const workspaceRoot = findWorkspaceRoot();
+
+  if (!workspaceRoot) {
+    return fallbackSeedInputs;
+  }
+
+  const cachedSeedInputs = loadCachedSeedInputs(workspaceRoot);
+
+  if (cachedSeedInputs) {
+    return cachedSeedInputs;
+  }
+
+  const extractedSeedInputs = extractSeedInputsFromWordBank(workspaceRoot);
+
+  return isExpandedSeedInputList(extractedSeedInputs)
+    ? extractedSeedInputs
+    : fallbackSeedInputs;
+}
+
+const fallbackSeedInputs: SeedPassageInput[] = [
+  {
     id: 'kaoyan-2022-english-i-reading-text-1',
     year: 2022,
     paper: '英语一',
@@ -133,8 +255,8 @@ export const seedPassages: PassageRecord[] = [
       'https://raw.githubusercontent.com/Fantasia1999/kaoyanzhenti/main/2022-english-i.pdf',
     content:
       "People often complain that plastics are too durable. Water bottles, shopping bags, and other trash litter the planet, from Mount Everest to the Mariana Trench, because plastics are everywhere and do not break down easily. But some plastic materials change over time. They crack and frizzle. They weep out additives. They melt into sludge. All of which creates huge headaches for institutions, such as museums, trying to preserve culturally important objects. The variety of plastic objects at risk is dizzying: early radios, avant-garde sculptures, celluloid animation stills from Disney films, and the first artificial heart. Certain artifacts are especially vulnerable because some pioneers in plastic art did not always know how to mix ingredients properly, says Thea van Oosten, a polymer chemist who, until retiring a few years ago, worked for decades at the Cultural Heritage Agency of the Netherlands. It is like baking a cake: if you do not have exact amounts, it goes wrong, she says. The object you make is already a time bomb. And sometimes, it is not the artist's fault. In the 1960s, the Italian artist Piero Gilardi began to create hundreds of bright, colorful foam pieces. Those pieces included small beds of roses and other items as well as a few dozen nature carpets, large rectangles decorated with foam pumpkins, cabbages, and watermelons. He wanted viewers to walk around on the carpets, which meant they had to be durable.",
-  }),
-  createSeedPassage({
+  },
+  {
     id: 'kaoyan-2017-english-i-reading-text-1',
     year: 2017,
     paper: '英语一',
@@ -144,5 +266,12 @@ export const seedPassages: PassageRecord[] = [
       'https://raw.githubusercontent.com/Fantasia1999/kaoyanzhenti/main/2017-english-i.pdf',
     content:
       "First two hours, now three hours: this is how far in advance authorities are recommending people show up to catch a domestic flight, at least at some major U.S. airports with increasingly massive security lines. Americans are willing to tolerate time-consuming security procedures in return for increased safety. The crash of EgyptAir Flight 804, which terrorists may have downed over the Mediterranean Sea, provides another tragic reminder of why. But demanding too much of air travelers or providing too little security in return undermines public support for the process. And it should: wasted time is a drag on Americans' economic and private lives, not to mention infuriating. Last year, the Transportation Security Administration found in a secret check that undercover investigators were able to sneak weapons, both fake and real, past airport security nearly every time they tried. Enhanced security measures since then, combined with a rise in airline travel due to the improving economy and low oil prices, have resulted in long waits at major airports such as Chicago O'Hare International. It is not yet clear how much more effective airline security has become, but the lines are obvious. Part of the issue is that the government did not anticipate the steep increase in airline travel, so the TSA is now rushing to get new screeners on the line.",
-  }),
+  },
 ];
+
+/**
+ * `seedPassages` 提供内存模式使用的真实考研阅读长段落。
+ */
+export const seedPassages: PassageRecord[] = loadSeedInputs().map((input) =>
+  createSeedPassage(input),
+);

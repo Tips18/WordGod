@@ -1,23 +1,38 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 
-const DEFAULT_ALLOWED_CORS_ORIGINS = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:4173',
-  'http://127.0.0.1:4173',
-];
+const LOCAL_DEVELOPMENT_HOSTS = new Set([
+  'localhost',
+  '127.0.0.1',
+  '::1',
+  '[::1]',
+]);
 
 /**
- * `getAllowedCorsOrigins` 汇总默认前端开发源与环境变量里的额外源。
+ * `getConfiguredCorsOrigins` 汇总环境变量里显式放行的跨域访问源。
  */
-function getAllowedCorsOrigins(): string[] {
-  const configuredOrigins =
+function getConfiguredCorsOrigins(): string[] {
+  return (
     process.env.CORS_ALLOWED_ORIGINS?.split(',')
       .map((origin) => origin.trim())
-      .filter(Boolean) ?? [];
+      .filter(Boolean) ?? []
+  );
+}
 
-  return [...new Set([...DEFAULT_ALLOWED_CORS_ORIGINS, ...configuredOrigins])];
+/**
+ * `isLocalDevelopmentOrigin` 判断请求源是否为本机前端开发服务。
+ */
+function isLocalDevelopmentOrigin(origin: string): boolean {
+  try {
+    const parsedOrigin = new URL(origin);
+
+    return (
+      ['http:', 'https:'].includes(parsedOrigin.protocol) &&
+      LOCAL_DEVELOPMENT_HOSTS.has(parsedOrigin.hostname)
+    );
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -27,7 +42,11 @@ function validateCorsOrigin(
   origin: string | undefined,
   callback: (error: Error | null, allow?: boolean) => void,
 ): void {
-  if (!origin || getAllowedCorsOrigins().includes(origin)) {
+  if (
+    !origin ||
+    isLocalDevelopmentOrigin(origin) ||
+    getConfiguredCorsOrigins().includes(origin)
+  ) {
     callback(null, true);
     return;
   }

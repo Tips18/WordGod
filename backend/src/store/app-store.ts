@@ -25,7 +25,9 @@ export const APP_STORE = Symbol('APP_STORE');
 export interface AppStore {
   findUserByEmail(email: string): MaybePromise<UserRecord | undefined>;
   findUserById(userId: string): MaybePromise<UserRecord | undefined>;
-  saveUser(user: Omit<UserRecord, 'id'> & { id?: string }): MaybePromise<UserRecord>;
+  saveUser(
+    user: Omit<UserRecord, 'id'> & { id?: string },
+  ): MaybePromise<UserRecord>;
   saveSession(
     session: Omit<AuthSessionRecord, 'id'> & { id?: string },
   ): MaybePromise<AuthSessionRecord>;
@@ -41,7 +43,9 @@ export interface AppStore {
     userId: string,
     passageId: string,
   ): MaybePromise<ReadingAttemptRecord | undefined>;
-  listVocabularyEntriesForUser(userId: string): MaybePromise<VocabularyEntryRecord[]>;
+  listVocabularyEntriesForUser(
+    userId: string,
+  ): MaybePromise<VocabularyEntryRecord[]>;
   findVocabularyEntry(
     userId: string,
     lemma: string,
@@ -49,11 +53,14 @@ export interface AppStore {
   saveVocabularyEntry(
     entry: Omit<VocabularyEntryRecord, 'id'> & { id?: string },
   ): MaybePromise<VocabularyEntryRecord>;
-  listVocabularyContexts(vocabularyEntryId: string): MaybePromise<VocabularyContextRecord[]>;
+  listVocabularyContexts(
+    vocabularyEntryId: string,
+  ): MaybePromise<VocabularyContextRecord[]>;
   replaceVocabularyContexts(
     vocabularyEntryId: string,
     contexts: Omit<VocabularyContextRecord, 'id'>[],
   ): MaybePromise<void>;
+  findLexiconEntry(lemma: string): MaybePromise<LexiconEntryRecord | undefined>;
   listLexiconEntries(): MaybePromise<LexiconEntryRecord[]>;
   saveLexiconEntries(entries: LexiconEntryRecord[]): MaybePromise<void>;
   listCrawlJobs(): MaybePromise<CrawlJobRecord[]>;

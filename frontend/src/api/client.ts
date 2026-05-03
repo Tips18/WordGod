@@ -119,3 +119,10 @@ export function listVocabulary(): Promise<VocabularyListResponse> {
 export function getVocabularyDetail(lemma: string): Promise<VocabularyDetailResponse> {
   return requestJson<VocabularyDetailResponse>(`/vocabulary/${lemma}`);
 }
+
+/**
+ * `getCurrentUser` 获取当前登录用户信息。
+ */
+export function getCurrentUser(): Promise<{ user: { id: string; email: string } } | { user: null }> {
+  return requestJson<{ user: { id: string; email: string } } | { user: null }>('/auth/me');
+}

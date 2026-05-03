@@ -103,7 +103,10 @@ export const enrichmentSchema = {
 /**
  * `assertObject` 校验未知值是否为普通对象。
  */
-function assertObject(value: unknown, message: string): asserts value is Record<string, unknown> {
+function assertObject(
+  value: unknown,
+  message: string,
+): asserts value is Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(message);
   }
@@ -284,7 +287,10 @@ function extractResponseText(responseBody: unknown): string {
 /**
  * `parseBatchOutputLine` 从 OpenAI Batch 输出行中解析并校验富化结果。
  */
-export function parseBatchOutputLine(line: string): { passageId: string; enriched: EnrichedPassage } {
+export function parseBatchOutputLine(line: string): {
+  passageId: string;
+  enriched: EnrichedPassage;
+} {
   const payload = JSON.parse(line) as BatchOutputLine;
 
   if (payload.error?.message) {

@@ -5,7 +5,9 @@ import { AppService } from './app.service';
 import { AuthController } from './auth/auth.controller';
 import { AuthService } from './auth/auth.service';
 import { ReadingController } from './reading/reading.controller';
+import { EcdictDictionaryService } from './reading/ecdict-dictionary.service';
 import { ReadingService } from './reading/reading.service';
+import { PassageTranslator } from './reading/passage-translator';
 import { PrismaService } from './prisma/prisma.service';
 import { APP_STORE, AppStore } from './store/app-store';
 import { InMemoryAppStore } from './store/in-memory-app.store';
@@ -67,6 +69,8 @@ function createAuthService(store: AppStore): AuthService {
       inject: [APP_STORE],
     },
     VocabularyService,
+    EcdictDictionaryService,
+    PassageTranslator,
     ReadingService,
   ],
 })

@@ -41,6 +41,26 @@ function renderApp(initialEntries: string[] = ['/']) {
   );
 }
 
+/**
+ * `mockGuestSession` 将当前用户接口设置为未登录状态。
+ */
+function mockGuestSession(): void {
+  vi.mocked(fetch).mockResolvedValueOnce(
+    createJsonResponse(200, { user: null }),
+  );
+}
+
+/**
+ * `mockLoggedInSession` 将当前用户接口设置为已登录状态。
+ */
+function mockLoggedInSession(): void {
+  vi.mocked(fetch).mockResolvedValueOnce(
+    createJsonResponse(200, {
+      user: { id: 'user-1', email: 'reader@example.com' },
+    }),
+  );
+}
+
 describe('AppShell behaviors', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
@@ -52,6 +72,7 @@ describe('AppShell behaviors', () => {
   });
 
   it('renders a passage and toggles token selection with a live detail card', async () => {
+    mockGuestSession();
     vi.mocked(fetch).mockResolvedValueOnce(
       createJsonResponse(200, {
         passage: {
@@ -114,6 +135,7 @@ describe('AppShell behaviors', () => {
   });
 
   it('shows the loading error instead of keeping the passage spinner forever', async () => {
+    mockGuestSession();
     vi.mocked(fetch).mockRejectedValueOnce(new Error('网络连接失败'));
 
     renderApp();
@@ -122,7 +144,21 @@ describe('AppShell behaviors', () => {
     expect(screen.queryByText('正在载入真题段落...')).not.toBeInTheDocument();
   });
 
+  it('shows an already logged in status instead of the auth link when a user session exists', async () => {
+    mockLoggedInSession();
+
+    renderApp(['/auth']);
+
+    expect(
+      await screen.findByRole('button', { name: '已登录' }),
+    ).toBeDisabled();
+    expect(
+      screen.queryByRole('link', { name: '登录 / 注册' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('opens the auth dialog when a guest tries to continue to the next passage', async () => {
+    mockGuestSession();
     vi.mocked(fetch)
       .mockResolvedValueOnce(
         createJsonResponse(200, {
@@ -175,6 +211,7 @@ describe('AppShell behaviors', () => {
   });
 
   it('logs in from the auth dialog and continues to the next passage', async () => {
+    mockGuestSession();
     vi.mocked(fetch)
       .mockResolvedValueOnce(
         createJsonResponse(200, {
@@ -271,14 +308,73 @@ describe('AppShell behaviors', () => {
       'reader@example.com',
     );
     await userEvent.type(screen.getByLabelText('密码'), 'Passw0rd!');
+    const rememberLoginCheckbox = await screen.findByRole('checkbox', {
+      name: '30天内记住登录',
+    });
+
+    expect(rememberLoginCheckbox).toBeChecked();
+    await userEvent.click(rememberLoginCheckbox);
     await userEvent.click(screen.getByRole('button', { name: '登录并继续' }));
 
     await waitFor(() => {
       expect(screen.getByText('Attention and Choice')).toBeInTheDocument();
     });
+
+    const loginCall = vi
+      .mocked(fetch)
+      .mock.calls.find(([url]) => String(url).includes('/auth/login'));
+    const loginInit = loginCall?.[1] as RequestInit | undefined;
+
+    expect(JSON.parse(loginInit?.body as string)).toEqual({
+      email: 'reader@example.com',
+      password: 'Passw0rd!',
+      rememberLogin: false,
+    });
+  });
+
+  it('submits remember login by default from the standalone auth page', async () => {
+    mockGuestSession();
+    vi.mocked(fetch).mockResolvedValueOnce(
+      createJsonResponse(200, {
+        user: { id: 'user-1', email: 'reader@example.com' },
+      }),
+    );
+
+    renderApp(['/auth?redirect=/auth']);
+
+    const rememberLoginCheckbox = await screen.findByRole('checkbox', {
+      name: '30天内记住登录',
+    });
+
+    expect(rememberLoginCheckbox).toBeChecked();
+
+    await userEvent.type(screen.getByLabelText('邮箱'), 'reader@example.com');
+    await userEvent.type(screen.getByLabelText('密码'), 'Passw0rd!');
+    await userEvent.click(screen.getByRole('button', { name: '确定' }));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/auth/login'),
+        expect.objectContaining({
+          method: 'POST',
+        }),
+      );
+    });
+
+    const loginCall = vi
+      .mocked(fetch)
+      .mock.calls.find(([url]) => String(url).includes('/auth/login'));
+    const loginInit = loginCall?.[1] as RequestInit | undefined;
+
+    expect(JSON.parse(loginInit?.body as string)).toEqual({
+      email: 'reader@example.com',
+      password: 'Passw0rd!',
+      rememberLogin: true,
+    });
   });
 
   it('renders a sorted vocabulary list and opens detail content', async () => {
+    mockGuestSession();
     vi.mocked(fetch)
       .mockResolvedValueOnce(
         createJsonResponse(200, {

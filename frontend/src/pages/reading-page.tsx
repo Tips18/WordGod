@@ -187,10 +187,15 @@ export function ReadingPage() {
     values: AuthFormValues,
     mode: 'login' | 'register',
   ) {
+    const credentials = {
+      email: values.email,
+      password: values.password,
+    };
+
     if (mode === 'register') {
-      await register(values);
+      await register(credentials);
     } else {
-      await login(values);
+      await login({ ...credentials, rememberLogin: values.rememberLogin });
     }
 
     setAuthDialogOpen(false);
@@ -322,12 +327,6 @@ export function ReadingPage() {
                 {focusedToken
                   ? activePassage.sentences[focusedToken.sentenceIndex]?.text
                   : '点击左侧单词后，这里会显示原句。'}
-              </p>
-              <p className="mt-3 text-stone-600">
-                {focusedToken
-                  ? activePassage.sentences[focusedToken.sentenceIndex]
-                      ?.translation
-                  : '原句翻译也会同步出现，便于快速确认语境。'}
               </p>
             </div>
           </div>

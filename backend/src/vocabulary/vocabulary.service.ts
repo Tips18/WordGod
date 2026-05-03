@@ -91,13 +91,13 @@ export class VocabularyService {
     const entries = await this.store.listVocabularyEntriesForUser(userId);
     const items = await Promise.all(
       entries
-      .sort((left, right) => {
-        if (right.markCount !== left.markCount) {
-          return right.markCount - left.markCount;
-        }
+        .sort((left, right) => {
+          if (right.markCount !== left.markCount) {
+            return right.markCount - left.markCount;
+          }
 
-        return right.lastMarkedAt.localeCompare(left.lastMarkedAt);
-      })
+          return right.lastMarkedAt.localeCompare(left.lastMarkedAt);
+        })
         .map((entry) => this.toDto(entry)),
     );
 
@@ -125,7 +125,9 @@ export class VocabularyService {
   /**
    * `toDto` 将生词实体转换为接口返回结构。
    */
-  private async toDto(entry: VocabularyEntryRecord): Promise<VocabularyEntryDto> {
+  private async toDto(
+    entry: VocabularyEntryRecord,
+  ): Promise<VocabularyEntryDto> {
     const contexts: VocabularyContextDto[] = (
       await this.store.listVocabularyContexts(entry.id)
     )

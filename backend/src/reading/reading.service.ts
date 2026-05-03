@@ -7,6 +7,8 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { APP_STORE } from '../store/app-store';
 import type { AppStore } from '../store/app-store';
 import { VocabularyService } from '../vocabulary/vocabulary.service';
+import { EcdictDictionaryService } from './ecdict-dictionary.service';
+import { PassageTranslator } from './passage-translator';
 
 /**
  * `ReadingService` 负责阅读检测页的数据分发与完成结算。
@@ -19,7 +21,21 @@ export class ReadingService {
   constructor(
     @Inject(APP_STORE) private readonly store: AppStore,
     private readonly vocabularyService: VocabularyService,
+    private readonly passageTranslator: PassageTranslator,
+    private readonly dictionaryService: EcdictDictionaryService,
   ) {}
+
+  /**
+   * `enrichPassageTokens` 用本地英汉词典补齐段落 token 的中文释义。
+   */
+  private async enrichPassageTokens(
+    passage: Awaited<ReturnType<PassageTranslator['translatePassage']>>,
+  ): Promise<Awaited<ReturnType<PassageTranslator['translatePassage']>>> {
+    return {
+      ...passage,
+      tokens: await this.dictionaryService.enrichTokens(passage.tokens),
+    };
+  }
 
   /**
    * `getRandomPassage` 返回一个不与上次相同的可阅读段落。
@@ -40,6 +56,9 @@ export class ReadingService {
       throw new NotFoundException('暂无可用段落');
     }
 
+    const translatedPassage = await this.enrichPassageTokens(
+      await this.passageTranslator.translatePassage(selectedPassage),
+    );
     const selectedTokenIds = userId
       ? ((await this.store.findAttempt(userId, selectedPassage.id))
           ?.selectedTokenIds ?? [])
@@ -47,18 +66,18 @@ export class ReadingService {
 
     return {
       passage: {
-        id: selectedPassage.id,
-        examType: selectedPassage.examType,
-        year: selectedPassage.year,
-        paper: selectedPassage.paper,
-        questionType: selectedPassage.questionType,
-        passageIndex: selectedPassage.passageIndex,
-        title: selectedPassage.title,
-        content: selectedPassage.content,
-        sourceUrl: selectedPassage.sourceUrl,
+        id: translatedPassage.id,
+        examType: translatedPassage.examType,
+        year: translatedPassage.year,
+        paper: translatedPassage.paper,
+        questionType: translatedPassage.questionType,
+        passageIndex: translatedPassage.passageIndex,
+        title: translatedPassage.title,
+        content: translatedPassage.content,
+        sourceUrl: translatedPassage.sourceUrl,
       },
-      sentences: selectedPassage.sentences,
-      tokens: selectedPassage.tokens,
+      sentences: translatedPassage.sentences,
+      tokens: translatedPassage.tokens,
       selectedTokenIds,
       requiresAuthToComplete: true,
     };
@@ -105,12 +124,15 @@ export class ReadingService {
       throw new NotFoundException('段落不存在');
     }
 
-    const selectedTokens = passage.tokens.filter((token) =>
+    const translatedPassage = await this.enrichPassageTokens(
+      await this.passageTranslator.translatePassage(passage),
+    );
+    const selectedTokens = translatedPassage.tokens.filter((token) =>
       attempt?.selectedTokenIds.includes(token.id),
     );
     const savedLemmaCount = await this.vocabularyService.recordMarks(
       userId,
-      passage,
+      translatedPassage,
       selectedTokens,
     );
 
