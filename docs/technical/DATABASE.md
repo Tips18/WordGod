@@ -107,3 +107,4 @@
 - `词库/ecdict.md` 是 ECDICT Markdown 词典资料，不新增表、字段、迁移或唯一约束；`content:import-ecdict` 会按 lemma 批量 upsert 到现有 `LexiconEntry` 表，阅读接口优先使用该表补全 token 词性和中文释义，不改变 `Passage` 表持久化内容。
 - Live Note 运行时翻译不新增表、字段或迁移；翻译成功结果只保存在后端进程内缓存中，不写回 `Passage.sentences` 或 `Passage.tokens`，数据库仍以内容导入结果为持久化来源。
 - 后端 ESLint 基线清理只涉及 TypeScript 格式与测试类型标注，不新增迁移，也不改变任何数据库 schema 或约束。
+- 后端启动构建配置只调整 TypeScript 输出目录、共享 contracts 解析和增量缓存位置，不新增迁移，也不改变任何数据库 schema、约束或持久化状态。

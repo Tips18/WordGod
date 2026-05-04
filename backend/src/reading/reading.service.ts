@@ -98,9 +98,9 @@ export class ReadingService {
     }
 
     const validTokenIds = new Set(passage.tokens.map((token) => token.id));
-    const uniqueSelection = [...new Set(payload.selectedTokenIds)].filter(
-      (tokenId) => validTokenIds.has(tokenId),
-    );
+    const uniqueSelection = Array.from(
+      new Set<string>(payload.selectedTokenIds),
+    ).filter((tokenId) => validTokenIds.has(tokenId));
 
     await this.store.saveAttempt({
       userId,

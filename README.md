@@ -44,6 +44,8 @@ corepack pnpm dev:backend
 corepack pnpm dev:frontend
 ```
 
+`dev:backend` 会先构建 `packages/contracts`，后端 TypeScript 再从 `packages/contracts/dist` 解析共享类型和常量，避免把共享包源码编进 `backend/dist` 导致 Nest 找不到 `dist/main.js`。contracts 和后端的增量构建缓存都写入各自 `dist/`，清理输出目录后会完整重建。
+
 后端会读取仓库根目录 `.env`。未设置 `WORD_GOD_STORE` 或设置为 `memory` 时使用内存题库，启动时优先读取 `content-cache/word-bank-extracted-passages.json` 中已抽取的 2017-2023 考研英语一/二 Text 段落；缓存不存在时会从 `词库/` Markdown 同步抽取每篇 Text 的一个正文段，避免本地题库退化为少量兜底样例。只有显式设置 `WORD_GOD_STORE=prisma` 时才使用 PostgreSQL，此时需先准备 `DATABASE_URL` 并执行迁移。首页正文以 `passage.content` 渲染完整英文段落，token 只负责单词点击标记。
 
 邮箱密码认证会在注册和登录时统一将邮箱去除首尾空格并转为小写。Prisma/PostgreSQL 模式下邮箱查找使用大小写不敏感匹配，已注册账号即使登录输入的邮箱大小写与注册时不同，也应能直接登录。登录表单默认勾选“30天内记住登录”，会签发 30 天刷新会话 Cookie；取消勾选时签发 24 小时刷新会话 Cookie。注册后自动登录仍沿用 30 天刷新会话。
