@@ -424,7 +424,7 @@ export function ReadingPage({ onAuthenticated }: ReadingPageProps) {
         aria-label="本篇已选"
         className="xl:sticky xl:top-6 xl:col-start-1 xl:row-start-1 xl:max-h-[calc(100vh-3rem)] xl:w-full xl:max-w-72 xl:justify-self-end xl:overflow-y-auto"
       >
-        <section className="rounded-lg border border-stone-900/10 bg-white/80 p-8">
+        <section className="rounded-lg border border-stone-900/[0.06] bg-white/70 p-6 backdrop-blur-sm">
           <p className="text-xs uppercase tracking-[0.32em] text-stone-500">
             Selected
           </p>
