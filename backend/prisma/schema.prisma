@@ -29,6 +29,21 @@ model AuthSession {
   @@index([userId])
 }
 
+model EmailVerificationCode {
+  id           String    @id @default(uuid())
+  email        String
+  purpose      String
+  codeHash     String
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  attemptCount Int       @default(0)
+  lastSentAt   DateTime
+  createdAt    DateTime  @default(now())
+
+  @@index([email, purpose, createdAt])
+  @@index([expiresAt])
+}
+
 model Passage {
   id             String             @id @default(uuid())
   examType       String
@@ -36,6 +51,8 @@ model Passage {
   paper          String
   questionType   String
   passageIndex   Int
+  textIndex      Int
+  paragraphIndex Int
   title          String
   sourceUrl      String
   sourceDomain   String
@@ -46,7 +63,7 @@ model Passage {
   readingAttempts ReadingAttempt[]
   vocabularyContexts VocabularyContext[]
 
-  @@unique([examType, year, paper, questionType, passageIndex])
+  @@unique([examType, year, paper, questionType, textIndex, paragraphIndex])
 }
 
 model LexiconEntry {

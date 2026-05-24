@@ -1,5 +1,11 @@
 import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
-import type { LoginRequest, RegisterRequest } from '@word-god/contracts';
+import type {
+  EmailCodeLoginRequest,
+  LoginRequest,
+  RegisterRequest,
+  ResetPasswordRequest,
+  SendEmailCodeRequest,
+} from '@word-god/contracts';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 
@@ -34,6 +40,16 @@ export class AuthController {
   }
 
   /**
+   * `sendEmailCode` 发送当前认证用途所需的邮箱验证码。
+   */
+  @Post('email-codes')
+  async sendEmailCode(
+    @Body() input: SendEmailCodeRequest,
+  ): Promise<{ success: true }> {
+    return this.authService.sendEmailCode(input);
+  }
+
+  /**
    * `register` 创建用户并写入认证 cookies。
    */
   @Post('register')
@@ -53,7 +69,7 @@ export class AuthController {
   }
 
   /**
-   * `login` 校验用户凭据并写入认证 cookies。
+   * `login` 校验邮箱密码并写入认证 cookies。
    */
   @Post('login')
   async login(
@@ -61,6 +77,44 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<{ user: { id: string; email: string } }> {
     const session = await this.authService.login(input);
+
+    this.authService.writeCookies(
+      response,
+      session.accessToken,
+      session.refreshToken,
+      session.refreshTokenMaxAgeMs,
+    );
+    return { user: session.user };
+  }
+
+  /**
+   * `loginWithEmailCode` 使用邮箱验证码登录并写入认证 cookies。
+   */
+  @Post('login/email-code')
+  async loginWithEmailCode(
+    @Body() input: EmailCodeLoginRequest,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<{ user: { id: string; email: string } }> {
+    const session = await this.authService.loginWithEmailCode(input);
+
+    this.authService.writeCookies(
+      response,
+      session.accessToken,
+      session.refreshToken,
+      session.refreshTokenMaxAgeMs,
+    );
+    return { user: session.user };
+  }
+
+  /**
+   * `resetPassword` 使用邮箱验证码重置密码并写入认证 cookies。
+   */
+  @Post('password/reset')
+  async resetPassword(
+    @Body() input: ResetPasswordRequest,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<{ user: { id: string; email: string } }> {
+    const session = await this.authService.resetPassword(input);
 
     this.authService.writeCookies(
       response,

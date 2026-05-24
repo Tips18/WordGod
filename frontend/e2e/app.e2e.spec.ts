@@ -11,6 +11,14 @@ async function mockReadingFlow() {
      * `attachTo` 将当前测试的接口拦截逻辑附加到页面。
      */
     async attachTo(page: import('@playwright/test').Page) {
+      await page.route('**/auth/me', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ user: null }),
+        });
+      });
+
       await page.route('**/reading/passages/random', async (route) => {
         await route.fulfill({
           status: 200,
@@ -23,6 +31,8 @@ async function mockReadingFlow() {
               paper: '英语一',
               questionType: 'reading',
               passageIndex: completed ? 2 : 1,
+              textIndex: completed ? 2 : 1,
+              paragraphIndex: 1,
               title: completed ? 'Attention and Choice' : 'Memory and Method',
               content: completed ? 'Obscure symbols shape memory.' : 'Obscure theories align with practice.',
               sourceUrl: 'https://example.com',
@@ -53,7 +63,7 @@ async function mockReadingFlow() {
       });
 
       let attemptCount = 0;
-      await page.route('**/reading/attempts/*', async (route) => {
+      await page.route('**/reading/attempts/**', async (route) => {
         if (route.request().method() === 'PUT' && attemptCount === 0) {
           attemptCount += 1;
           await route.fulfill({
@@ -88,6 +98,8 @@ async function mockReadingFlow() {
                 paper: '英语一',
                 questionType: 'reading',
                 passageIndex: 2,
+                textIndex: 2,
+                paragraphIndex: 1,
                 title: 'Attention and Choice',
                 content: 'Obscure symbols shape memory.',
                 sourceUrl: 'https://example.com',
@@ -153,7 +165,20 @@ test('guest is intercepted on next and can continue after login', async ({ page 
 });
 
 test('vocabulary list opens detail contexts', async ({ page }) => {
-  await page.route('**/vocabulary', async (route) => {
+  await page.route('**/auth/me', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        user: {
+          id: 'user-1',
+          email: 'reader@example.com',
+        },
+      }),
+    });
+  });
+
+  await page.route('http://localhost:3000/vocabulary', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -173,7 +198,7 @@ test('vocabulary list opens detail contexts', async ({ page }) => {
     });
   });
 
-  await page.route('**/vocabulary/obscure', async (route) => {
+  await page.route('http://localhost:3000/vocabulary/obscure', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -201,5 +226,7 @@ test('vocabulary list opens detail contexts', async ({ page }) => {
   await page.goto('/vocabulary');
   await page.getByRole('link', { name: /obscure/i }).click();
 
-  await expect(page.getByText('晦涩的争论缓慢地重塑公共政策。')).toBeVisible();
+  await expect(
+    page.getByText('Obscure debates slowly reshape public policy.'),
+  ).toBeVisible();
 });

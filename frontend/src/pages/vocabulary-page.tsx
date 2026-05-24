@@ -1,27 +1,38 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { listVocabulary } from '../api/client';
+
+interface VocabularyPageProps {
+  authRevision: number;
+  onAuthRequired?: (message?: string) => void;
+}
 
 /**
  * `VocabularyPage` 展示当前用户的生词本列表。
  */
-export function VocabularyPage() {
-  const navigate = useNavigate();
+export function VocabularyPage({
+  authRevision,
+  onAuthRequired,
+}: VocabularyPageProps) {
   const vocabularyQuery = useQuery({
-    queryKey: ['vocabulary-list'],
+    queryKey: ['vocabulary-list', authRevision],
     queryFn: listVocabulary,
     retry: false,
   });
 
   useEffect(() => {
     if (vocabularyQuery.isError) {
-      navigate('/auth?redirect=/vocabulary', { replace: true });
+      onAuthRequired?.('生词本需要登录后查看。');
     }
-  }, [navigate, vocabularyQuery.isError]);
+  }, [onAuthRequired, vocabularyQuery.isError]);
 
   if (vocabularyQuery.isError) {
-    return null;
+    return (
+      <section className="rounded-[2rem] border border-stone-900/10 bg-white/80 p-8 text-stone-600 shadow-[0_18px_60px_rgba(74,39,24,0.12)]">
+        生词本需要登录后查看。
+      </section>
+    );
   }
 
   if (vocabularyQuery.isLoading) {

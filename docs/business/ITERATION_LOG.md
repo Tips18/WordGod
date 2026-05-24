@@ -25,3 +25,24 @@
 - 从现有考研英语一/二资料抽取并写入 56 篇阅读段落，同时同步 token 词条到 `LexiconEntry`；后端随机段落接口已验证可从 PostgreSQL 返回真实段落。
 - 检查词典文件状态：仓库当前没有 `词库/ecdict.md` 实体文件，阅读词义优先使用数据库 `LexiconEntry`，缺失时仍保留代码中的 ECDICT Markdown 回退路径。
 - 合并本轮后端构建修复到本地 `main`，并通过 `corepack pnpm test` 验证 contracts、后端 Jest 和前端 Vitest 测试。
+
+## 2026-05-08
+
+- 阅读页新增本篇已选生词列表：宽屏显示在正文左侧旁批轨，窄屏显示在正文下方、Live Note 之前。
+- 本篇已选列表按 lemma 去重展示词面，并在每个词后提供 `×` 删除按钮；点击后会取消本篇该词的临时标记。
+- 补充前端行为测试，覆盖列表展示、列表删除、重复 lemma 去重和宽屏旁批布局。
+
+## 2026-05-15
+
+- 将阅读题库来源切换为 `真题题库/wordcram-kaoyan/articles/` 的 WordCram 考研英语一文章资料。
+- 题库抽取从“每篇 Text 抽一段”改为“每个英文自然段一条 Passage”，首页随机展示自然段级内容。
+- `Passage` 新增 `textIndex` 与 `paragraphIndex`，唯一约束切换为自然段级唯一键，支持同一 Text 下多个自然段幂等入库。
+- 内存模式优先读取 `content-cache/wordcram-article-passages.json`，并在缓存缺失时直接从 WordCram articles 抽取 1998-2026 英语一自然段。
+- 新增考研英语二标准化文章资料，输出到 `真题题库/kaoyan-english-ii/articles/` 与 `index.json`，覆盖 2010、2013-2026 年。
+- 英语二资料来源限定为启航公开文件、中国教育在线公开 HTML 与 BurningVocabulary 公开 PDF viewer，不纳入答案解析、登录、付费、下载次数或复制限制流程；2011、2012 缺少本轮选定公开来源正文，记录为失败项。
+
+## 2026-05-17
+
+- 将考研英语二 `Text 1-4` 自然段接入同一题库抽取、缓存、内存种子和 Prisma 随机阅读白名单。
+- 英语二 `Section I Use of English` 完形段落继续保留在标准化 Markdown 中，但不进入首页随机阅读和数据库 Passage 导入集合。
+- `content-cache/wordcram-article-passages.json` 重新抽取为 1021 条自然段，其中英语一 654 条、英语二 367 条。

@@ -61,6 +61,50 @@ function mockLoggedInSession(): void {
   );
 }
 
+/**
+ * `mockReadingPassage` 为首页认证相关测试提供基础阅读段落。
+ */
+function mockReadingPassage(): void {
+  vi.mocked(fetch).mockResolvedValueOnce(
+    createJsonResponse(200, {
+      passage: {
+        id: 'passage-1',
+        examType: 'kaoyan',
+        year: 2024,
+        paper: '英语一',
+        questionType: 'reading',
+        passageIndex: 1,
+        textIndex: 1,
+        paragraphIndex: 1,
+        title: 'Memory and Method',
+        content: 'Obscure theories align with practice.',
+        sourceUrl: 'https://example.com',
+      },
+      sentences: [
+        {
+          index: 0,
+          text: 'Obscure theories align with practice.',
+          translation: '晦涩的理论与实践保持一致。',
+        },
+      ],
+      tokens: [
+        {
+          id: 'p1-t1',
+          lemma: 'obscure',
+          surface: 'Obscure',
+          sentenceIndex: 0,
+          partOfSpeech: 'adj.',
+          definitionCn: '晦涩的',
+          translationCn: '晦涩的理论与实践保持一致。',
+          isWord: true,
+        },
+      ],
+      selectedTokenIds: [],
+      requiresAuthToComplete: true,
+    }),
+  );
+}
+
 describe('AppShell behaviors', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
@@ -82,6 +126,8 @@ describe('AppShell behaviors', () => {
           paper: '英语一',
           questionType: 'reading',
           passageIndex: 1,
+          textIndex: 1,
+          paragraphIndex: 1,
           title: 'Memory and Method',
           content: 'Obscure theories align with practice.',
           sourceUrl: 'https://example.com',
@@ -130,8 +176,91 @@ describe('AppShell behaviors', () => {
     await userEvent.click(tokenButton);
 
     expect(tokenButton).toHaveAttribute('aria-pressed', 'true');
+    const selectedWords = screen.getByRole('complementary', {
+      name: '本篇已选',
+    });
+
+    expect(within(selectedWords).getByText('Obscure')).toBeInTheDocument();
     expect(screen.getByText('晦涩的')).toBeInTheDocument();
-    expect(screen.getByText('Obscure theories align with practice.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Obscure theories align with practice.'),
+    ).toBeInTheDocument();
+
+    await userEvent.click(
+      within(selectedWords).getByRole('button', { name: '移除 Obscure' }),
+    );
+
+    expect(tokenButton).toHaveAttribute('aria-pressed', 'false');
+    expect(
+      within(selectedWords).queryByText('Obscure'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows each selected lemma once in the current passage word list', async () => {
+    mockGuestSession();
+    vi.mocked(fetch).mockResolvedValueOnce(
+      createJsonResponse(200, {
+        passage: {
+          id: 'passage-1',
+          examType: 'kaoyan',
+          year: 2024,
+          paper: '英语一',
+          questionType: 'reading',
+          passageIndex: 1,
+          textIndex: 1,
+          paragraphIndex: 1,
+          title: 'Memory and Method',
+          content: 'Obscure signs make obscure rules.',
+          sourceUrl: 'https://example.com',
+        },
+        sentences: [
+          {
+            index: 0,
+            text: 'Obscure signs make obscure rules.',
+            translation: '晦涩的符号形成晦涩的规则。',
+          },
+        ],
+        tokens: [
+          {
+            id: 'p1-t1',
+            lemma: 'obscure',
+            surface: 'Obscure',
+            sentenceIndex: 0,
+            partOfSpeech: 'adj.',
+            definitionCn: '晦涩的',
+            translationCn: '晦涩的符号形成晦涩的规则。',
+            isWord: true,
+          },
+          {
+            id: 'p1-t2',
+            lemma: 'obscure',
+            surface: 'obscure',
+            sentenceIndex: 0,
+            partOfSpeech: 'adj.',
+            definitionCn: '晦涩的',
+            translationCn: '晦涩的符号形成晦涩的规则。',
+            isWord: true,
+          },
+        ],
+        selectedTokenIds: [],
+        requiresAuthToComplete: true,
+      }),
+    );
+
+    renderApp();
+
+    const selectedWords = await screen.findByRole('complementary', {
+      name: '本篇已选',
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Obscure' }),
+    );
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'obscure' }),
+    );
+
+    expect(within(selectedWords).getAllByText(/obscure/i)).toHaveLength(1);
   });
 
   it('renders live note as a sticky desktop margin rail', async () => {
@@ -145,6 +274,8 @@ describe('AppShell behaviors', () => {
           paper: '英语一',
           questionType: 'reading',
           passageIndex: 1,
+          textIndex: 1,
+          paragraphIndex: 1,
           title: 'Memory and Method',
           content: 'Obscure theories align with practice.',
           sourceUrl: 'https://example.com',
@@ -177,18 +308,52 @@ describe('AppShell behaviors', () => {
 
     const appContainer = await screen.findByTestId('app-container');
     const readingLayout = await screen.findByTestId('reading-layout');
+    const selectedWords = await screen.findByRole('complementary', {
+      name: '本篇已选',
+    });
     const liveNote = await screen.findByRole('complementary', {
       name: 'Live Note',
     });
+    const selectedWordsPanelClass =
+      selectedWords.querySelector('section')?.className ?? '';
+    const liveNotePanelClass =
+      liveNote.querySelector('section')?.className ?? '';
 
     expect(appContainer).toHaveClass('max-w-[104rem]');
-    expect(readingLayout).toHaveClass('xl:grid-cols-[minmax(0,1fr)_minmax(44rem,44rem)_minmax(0,1fr)]');
-    expect(readingLayout).toHaveClass('2xl:grid-cols-[minmax(0,1fr)_minmax(44rem,56rem)_minmax(0,1fr)]');
+    expect(readingLayout).toHaveClass(
+      'xl:grid-cols-[minmax(0,1fr)_minmax(44rem,44rem)_minmax(0,1fr)]',
+    );
+    expect(readingLayout).toHaveClass(
+      '2xl:grid-cols-[minmax(0,1fr)_minmax(44rem,56rem)_minmax(0,1fr)]',
+    );
+    expect(selectedWords).toHaveClass('xl:col-start-1');
+    expect(selectedWords).toHaveClass('xl:justify-self-end');
+    expect(selectedWords).toHaveClass('xl:sticky');
     expect(liveNote).toHaveClass('xl:sticky');
     expect(liveNote).toHaveClass('xl:top-6');
     expect(liveNote).toHaveClass('xl:justify-self-start');
     expect(liveNote).toHaveClass('xl:max-h-[calc(100vh-3rem)]');
     expect(liveNote).toHaveClass('xl:overflow-y-auto');
+    expect(selectedWordsPanelClass).toContain('rounded-lg');
+    expect(selectedWordsPanelClass).not.toContain('shadow-');
+    expect(selectedWordsPanelClass).not.toContain('ring-');
+    expect(liveNotePanelClass).toContain('rounded-lg');
+    expect(liveNotePanelClass).not.toContain('shadow-');
+    expect(liveNotePanelClass).not.toContain('ring-');
+  });
+
+  it('renders the header in normal document flow instead of sticky positioning', async () => {
+    mockGuestSession();
+    mockReadingPassage();
+
+    renderApp(['/']);
+
+    const header = await screen.findByRole('banner');
+
+    expect(header).toHaveClass('mb-8');
+    expect(header).not.toHaveClass('sticky');
+    expect(header).not.toHaveClass('top-4');
+    expect(header).not.toHaveClass('z-40');
   });
 
   it('shows the loading error instead of keeping the passage spinner forever', async () => {
@@ -201,14 +366,17 @@ describe('AppShell behaviors', () => {
     expect(screen.queryByText('正在载入真题段落...')).not.toBeInTheDocument();
   });
 
-  it('shows an already logged in status instead of the auth link when a user session exists', async () => {
+  it('shows the logged in email instead of the auth trigger when a user session exists', async () => {
     mockLoggedInSession();
+    mockReadingPassage();
 
-    renderApp(['/auth']);
+    renderApp(['/']);
 
-    expect(await screen.findByRole('button', { name: '退出登录' })).toBeInTheDocument();
     expect(
-      screen.queryByRole('link', { name: '登录 / 注册' }),
+      await screen.findByText('reader@example.com'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '登录 / 注册' }),
     ).not.toBeInTheDocument();
   });
 
@@ -224,6 +392,8 @@ describe('AppShell behaviors', () => {
             paper: '英语一',
             questionType: 'reading',
             passageIndex: 1,
+            textIndex: 1,
+            paragraphIndex: 1,
             title: 'Memory and Method',
             content: 'Obscure theories align with practice.',
             sourceUrl: 'https://example.com',
@@ -265,6 +435,72 @@ describe('AppShell behaviors', () => {
     ).toBeInTheDocument();
   });
 
+  it('closes the continue auth dialog without leaving the reading page', async () => {
+    mockGuestSession();
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        createJsonResponse(200, {
+          passage: {
+            id: 'passage-1',
+            examType: 'kaoyan',
+            year: 2024,
+            paper: '英语一',
+            questionType: 'reading',
+            passageIndex: 1,
+            textIndex: 1,
+            paragraphIndex: 1,
+            title: 'Memory and Method',
+            content: 'Obscure theories align with practice.',
+            sourceUrl: 'https://example.com',
+          },
+          sentences: [
+            {
+              index: 0,
+              text: 'Obscure theories align with practice.',
+              translation: '晦涩的理论与实践保持一致。',
+            },
+          ],
+          tokens: [
+            {
+              id: 'p1-t1',
+              lemma: 'obscure',
+              surface: 'Obscure',
+              sentenceIndex: 0,
+              partOfSpeech: 'adj.',
+              definitionCn: '晦涩的',
+              translationCn: '晦涩的理论与实践保持一致。',
+              isWord: true,
+            },
+          ],
+          selectedTokenIds: [],
+          requiresAuthToComplete: true,
+        }),
+      )
+      .mockResolvedValueOnce(createJsonResponse(401, { message: '需要登录' }));
+
+    renderApp();
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Obscure' }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: '下一篇' }));
+
+    const authDialog = await screen.findByRole('dialog', {
+      name: '登录后继续',
+    });
+
+    await userEvent.click(
+      within(authDialog).getByRole('button', { name: '关闭登录弹窗' }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('dialog', { name: '登录后继续' }),
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: '下一篇' })).toBeInTheDocument();
+  });
+
   it('logs in from the auth dialog and continues to the next passage', async () => {
     mockGuestSession();
     vi.mocked(fetch)
@@ -277,6 +513,8 @@ describe('AppShell behaviors', () => {
             paper: '英语一',
             questionType: 'reading',
             passageIndex: 1,
+            textIndex: 1,
+            paragraphIndex: 1,
             title: 'Memory and Method',
             content: 'Obscure theories align with practice.',
             sourceUrl: 'https://example.com',
@@ -323,6 +561,8 @@ describe('AppShell behaviors', () => {
               paper: '英语一',
               questionType: 'reading',
               passageIndex: 2,
+              textIndex: 2,
+              paragraphIndex: 1,
               title: 'Attention and Choice',
               content: 'Obscure symbols shape memory.',
               sourceUrl: 'https://example.com',
@@ -387,15 +627,24 @@ describe('AppShell behaviors', () => {
     });
   });
 
-  it('submits remember login by default from the standalone auth page', async () => {
+  it('opens the global auth dialog from the header and submits remember login by default', async () => {
     mockGuestSession();
+    mockReadingPassage();
     vi.mocked(fetch).mockResolvedValueOnce(
       createJsonResponse(200, {
         user: { id: 'user-1', email: 'reader@example.com' },
       }),
     );
 
-    renderApp(['/auth?redirect=/auth']);
+    renderApp(['/']);
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: '登录 / 注册' }),
+    );
+
+    expect(
+      await screen.findByRole('dialog', { name: '登录 / 注册' }),
+    ).toBeInTheDocument();
 
     const rememberLoginCheckbox = await screen.findByRole('checkbox', {
       name: '30天内记住登录',
@@ -425,6 +674,206 @@ describe('AppShell behaviors', () => {
       email: 'reader@example.com',
       password: 'Passw0rd!',
       rememberLogin: true,
+    });
+  });
+
+  it('updates the navigation state after global dialog login succeeds', async () => {
+    mockGuestSession();
+    mockReadingPassage();
+    vi.mocked(fetch).mockResolvedValueOnce(
+      createJsonResponse(200, {
+        user: { id: 'user-1', email: 'reader@example.com' },
+      }),
+    );
+
+    renderApp(['/']);
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: '登录 / 注册' }),
+    );
+
+    await userEvent.type(
+      await screen.findByLabelText('邮箱'),
+      'reader@example.com',
+    );
+    await userEvent.type(screen.getByLabelText('密码'), 'Passw0rd!');
+    await userEvent.click(screen.getByRole('button', { name: '确定' }));
+
+    expect(await screen.findByText('reader@example.com')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: '退出登录' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '登录 / 注册' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('logs in with an email code from the global auth dialog', async () => {
+    mockGuestSession();
+    mockReadingPassage();
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(createJsonResponse(200, { success: true }))
+      .mockResolvedValueOnce(
+        createJsonResponse(200, {
+          user: { id: 'user-1', email: 'reader@example.com' },
+        }),
+      );
+
+    renderApp(['/']);
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: '登录 / 注册' }),
+    );
+    await userEvent.click(await screen.findByRole('button', { name: '验证码登录' }));
+    await userEvent.type(screen.getByLabelText('邮箱'), 'reader@example.com');
+    await userEvent.click(screen.getByRole('button', { name: '发送验证码' }));
+    await userEvent.type(screen.getByLabelText('验证码'), '123456');
+    await userEvent.click(screen.getByRole('button', { name: '确定' }));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/auth/login/email-code'),
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    const loginCall = vi
+      .mocked(fetch)
+      .mock.calls.find(([url]) =>
+        String(url).includes('/auth/login/email-code'),
+      );
+    const loginInit = loginCall?.[1] as RequestInit | undefined;
+
+    expect(JSON.parse(loginInit?.body as string)).toEqual({
+      email: 'reader@example.com',
+      emailCode: '123456',
+      rememberLogin: true,
+    });
+  });
+
+  it('registers with an email code from the global auth dialog', async () => {
+    mockGuestSession();
+    mockReadingPassage();
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(createJsonResponse(200, { success: true }))
+      .mockResolvedValueOnce(
+        createJsonResponse(200, {
+          user: { id: 'user-1', email: 'reader@example.com' },
+        }),
+      );
+
+    renderApp(['/']);
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: '登录 / 注册' }),
+    );
+    await userEvent.click(await screen.findByRole('button', { name: '去注册' }));
+    await userEvent.type(screen.getByLabelText('邮箱'), 'reader@example.com');
+    await userEvent.click(screen.getByRole('button', { name: '发送验证码' }));
+    await userEvent.type(screen.getByLabelText('验证码'), '123456');
+    await userEvent.type(screen.getByLabelText('密码'), 'Passw0rd!');
+    await userEvent.click(screen.getByRole('button', { name: '确定' }));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/auth/register'),
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    const registerCall = vi
+      .mocked(fetch)
+      .mock.calls.find(([url]) => String(url).includes('/auth/register'));
+    const registerInit = registerCall?.[1] as RequestInit | undefined;
+
+    expect(JSON.parse(registerInit?.body as string)).toEqual({
+      email: 'reader@example.com',
+      password: 'Passw0rd!',
+      emailCode: '123456',
+    });
+  });
+
+  it('resets password with an email code from the global auth dialog', async () => {
+    mockGuestSession();
+    mockReadingPassage();
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(createJsonResponse(200, { success: true }))
+      .mockResolvedValueOnce(
+        createJsonResponse(200, {
+          user: { id: 'user-1', email: 'reader@example.com' },
+        }),
+      );
+
+    renderApp(['/']);
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: '登录 / 注册' }),
+    );
+    await userEvent.click(await screen.findByRole('button', { name: '忘记密码' }));
+    await userEvent.type(screen.getByLabelText('邮箱'), 'reader@example.com');
+    await userEvent.click(screen.getByRole('button', { name: '发送验证码' }));
+    await userEvent.type(screen.getByLabelText('验证码'), '123456');
+    await userEvent.type(screen.getByLabelText('新密码'), 'NewPassw0rd!');
+    await userEvent.click(screen.getByRole('button', { name: '确定' }));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/auth/password/reset'),
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    const resetCall = vi
+      .mocked(fetch)
+      .mock.calls.find(([url]) => String(url).includes('/auth/password/reset'));
+    const resetInit = resetCall?.[1] as RequestInit | undefined;
+
+    expect(JSON.parse(resetInit?.body as string)).toEqual({
+      email: 'reader@example.com',
+      emailCode: '123456',
+      newPassword: 'NewPassw0rd!',
+      rememberLogin: true,
+    });
+  });
+
+  it('opens the global auth dialog instead of navigating away when vocabulary requires login', async () => {
+    mockGuestSession();
+    vi.mocked(fetch).mockResolvedValueOnce(
+      createJsonResponse(401, { message: '需要登录' }),
+    );
+
+    renderApp(['/vocabulary']);
+
+    const authDialog = await screen.findByRole('dialog', {
+      name: '登录 / 注册',
+    });
+
+    expect(authDialog).toBeInTheDocument();
+    expect(
+      within(authDialog).getByText('生词本需要登录后查看。'),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the vocabulary auth dialog closed when a guest dismisses it', async () => {
+    mockGuestSession();
+    vi.mocked(fetch).mockResolvedValueOnce(
+      createJsonResponse(401, { message: '需要登录' }),
+    );
+
+    renderApp(['/vocabulary']);
+
+    const authDialog = await screen.findByRole('dialog', {
+      name: '登录 / 注册',
+    });
+
+    await userEvent.click(
+      within(authDialog).getByRole('button', { name: '关闭登录弹窗' }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('dialog', { name: '登录 / 注册' }),
+      ).not.toBeInTheDocument();
     });
   });
 

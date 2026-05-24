@@ -1,6 +1,7 @@
 import {
   AuthSessionRecord,
   CrawlJobRecord,
+  EmailVerificationCodeRecord,
   LexiconEntryRecord,
   PassageRecord,
   ReadingAttemptRecord,
@@ -34,6 +35,18 @@ export interface AppStore {
   listSessionsForUser(userId: string): MaybePromise<AuthSessionRecord[]>;
   listSessions(): MaybePromise<AuthSessionRecord[]>;
   removeSessionById(sessionId: string): MaybePromise<void>;
+  findLatestEmailCode(
+    email: string,
+    purpose: EmailVerificationCodeRecord['purpose'],
+  ): MaybePromise<EmailVerificationCodeRecord | undefined>;
+  saveEmailCode(
+    code: Omit<EmailVerificationCodeRecord, 'id'> & { id?: string },
+  ): MaybePromise<EmailVerificationCodeRecord>;
+  invalidateEmailCodes(
+    email: string,
+    purpose: EmailVerificationCodeRecord['purpose'],
+    consumedAt: string,
+  ): MaybePromise<void>;
   listPassages(): MaybePromise<PassageRecord[]>;
   findPassage(passageId: string): MaybePromise<PassageRecord | undefined>;
   saveAttempt(

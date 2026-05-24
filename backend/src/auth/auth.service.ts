@@ -1,15 +1,25 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { compare, hash } from 'bcrypt';
 import {
   AuthResponse,
+  EmailCodeLoginRequest,
   LoginRequest,
   RegisterRequest,
+  ResetPasswordRequest,
+  SendEmailCodeRequest,
+  SendEmailCodeResponse,
 } from '@word-god/contracts';
+import { compare, hash } from 'bcrypt';
+import type { Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
-import { Request, Response } from 'express';
 import { APP_STORE } from '../store/app-store';
 import type { AppStore } from '../store/app-store';
+import { EmailCodeService, normalizeEmail } from './email-code.service';
 
 const ACCESS_COOKIE = 'word_god_access_token';
 const REFRESH_COOKIE = 'word_god_refresh_token';
@@ -18,10 +28,14 @@ const REMEMBER_REFRESH_COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const SHORT_REFRESH_COOKIE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 /**
- * `normalizeEmail` 将邮箱输入规整为认证查找和持久化使用的稳定格式。
+ * `normalizePassword` 校验密码输入并保留用户原始密码内容。
  */
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
+function normalizePassword(password: unknown): string {
+  if (typeof password !== 'string' || password.trim().length === 0) {
+    throw new BadRequestException('请输入密码');
+  }
+
+  return password;
 }
 
 /**
@@ -46,35 +60,70 @@ export interface ResolvedSession {
 }
 
 /**
- * `AuthService` 负责邮箱密码认证、Cookie 读写和会话恢复。
+ * `AuthService` 负责邮箱认证、Cookie 读写和会话恢复。
  */
 @Injectable()
 export class AuthService {
   private readonly jwtService: JwtService;
 
   /**
-   * `constructor` 初始化认证服务所需的依赖。
+   * `constructor` 初始化认证服务所需依赖。
    */
   constructor(
     @Inject(APP_STORE) private readonly store: AppStore,
     private readonly jwtSecret: string,
+    private readonly emailCodeService?: EmailCodeService,
   ) {
     this.jwtService = new JwtService({ secret: jwtSecret });
+  }
+
+  /**
+   * `sendEmailCode` 按认证用途发送邮箱验证码。
+   */
+  async sendEmailCode(
+    input: SendEmailCodeRequest,
+  ): Promise<SendEmailCodeResponse> {
+    const email = normalizeEmail(input?.email);
+    const existingUser = await this.store.findUserByEmail(email);
+
+    if (input.purpose === 'register' && existingUser) {
+      throw new UnauthorizedException('邮箱已被注册');
+    }
+
+    if (input.purpose === 'reset-password' && !existingUser) {
+      throw new BadRequestException('邮箱未注册，请先注册');
+    }
+
+    if (input.purpose === 'login' && !existingUser) {
+      return { success: true };
+    }
+
+    return this.getEmailCodeService().sendCode({
+      email,
+      purpose: input.purpose,
+    });
   }
 
   /**
    * `register` 创建新用户并签发访问令牌与刷新令牌。
    */
   async register(input: RegisterRequest): Promise<AuthSessionResult> {
-    const email = normalizeEmail(input.email);
+    const email = normalizeEmail(input?.email);
+    const password = normalizePassword(input?.password);
     const existingUser = await this.store.findUserByEmail(email);
 
     if (existingUser) {
       throw new UnauthorizedException('邮箱已被注册');
     }
 
+    await this.getEmailCodeService().verifyCode(
+      email,
+      'register',
+      input?.emailCode,
+    );
+
     const now = new Date().toISOString();
-    const passwordHash = await hash(input.password, 10);
+    const passwordHash = await hash(password, 10);
     const savedUser = await this.store.saveUser({
       email,
       passwordHash,
@@ -93,14 +142,15 @@ export class AuthService {
    * `login` 校验邮箱密码并签发新会话。
    */
   async login(input: LoginRequest): Promise<AuthSessionResult> {
-    const email = normalizeEmail(input.email);
+    const email = normalizeEmail(input?.email);
+    const password = normalizePassword(input?.password);
     const savedUser = await this.store.findUserByEmail(email);
 
     if (!savedUser) {
       throw new UnauthorizedException('邮箱或密码错误');
     }
 
-    const matched = await compare(input.password, savedUser.passwordHash);
+    const matched = await compare(password, savedUser.passwordHash);
 
     if (!matched) {
       throw new UnauthorizedException('邮箱或密码错误');
@@ -109,6 +159,71 @@ export class AuthService {
     return this.createSession(
       savedUser.id,
       savedUser.email,
+      input.rememberLogin === false
+        ? SHORT_REFRESH_COOKIE_MAX_AGE_MS
+        : REMEMBER_REFRESH_COOKIE_MAX_AGE_MS,
+    );
+  }
+
+  /**
+   * `loginWithEmailCode` 使用邮箱验证码校验身份并签发会话。
+   */
+  async loginWithEmailCode(
+    input: EmailCodeLoginRequest,
+  ): Promise<AuthSessionResult> {
+    const email = normalizeEmail(input?.email);
+
+    await this.getEmailCodeService().verifyCode(
+      email,
+      'login',
+      input?.emailCode,
+    );
+
+    const savedUser = await this.store.findUserByEmail(email);
+
+    if (!savedUser) {
+      throw new UnauthorizedException('邮箱或验证码错误');
+    }
+
+    return this.createSession(
+      savedUser.id,
+      savedUser.email,
+      input.rememberLogin === false
+        ? SHORT_REFRESH_COOKIE_MAX_AGE_MS
+        : REMEMBER_REFRESH_COOKIE_MAX_AGE_MS,
+    );
+  }
+
+  /**
+   * `resetPassword` 使用邮箱验证码更新密码并签发新会话。
+   */
+  async resetPassword(input: ResetPasswordRequest): Promise<AuthSessionResult> {
+    const email = normalizeEmail(input?.email);
+    const newPassword = normalizePassword(input?.newPassword);
+
+    await this.getEmailCodeService().verifyCode(
+      email,
+      'reset-password',
+      input?.emailCode,
+    );
+
+    const savedUser = await this.store.findUserByEmail(email);
+
+    if (!savedUser) {
+      throw new UnauthorizedException('邮箱或验证码错误');
+    }
+
+    const now = new Date().toISOString();
+    const passwordHash = await hash(newPassword, 10);
+    const updatedUser = await this.store.saveUser({
+      ...savedUser,
+      passwordHash,
+      updatedAt: now,
+    });
+
+    return this.createSession(
+      updatedUser.id,
+      updatedUser.email,
       input.rememberLogin === false
         ? SHORT_REFRESH_COOKIE_MAX_AGE_MS
         : REMEMBER_REFRESH_COOKIE_MAX_AGE_MS,
@@ -316,5 +431,16 @@ export class AuthService {
   ): Promise<{ id: string; email: string } | null> {
     const user = await this.store.findUserById(userId);
     return user || null;
+  }
+
+  /**
+   * `getEmailCodeService` 返回已配置的验证码服务或抛出配置错误。
+   */
+  private getEmailCodeService(): EmailCodeService {
+    if (!this.emailCodeService) {
+      throw new BadRequestException('验证码服务未配置');
+    }
+
+    return this.emailCodeService;
   }
 }

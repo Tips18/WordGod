@@ -21,9 +21,10 @@ import {
  */
 export interface WordBankImportPaths {
   workspaceRoot: string;
-  wordBankRoot: string;
+  wordBankRoots: string[];
   cacheRoot: string;
   extractedPassagesFile: string;
+  extractionWarningsFile: string;
   batchInputFile: string;
   batchMetaFile: string;
   batchOutputFile: string;
@@ -50,14 +51,29 @@ export function createWordBankImportPaths(
 
   return {
     workspaceRoot,
-    wordBankRoot: join(workspaceRoot, '词库'),
+    wordBankRoots: [
+      join(workspaceRoot, '真题题库', 'wordcram-kaoyan', 'articles'),
+      join(workspaceRoot, '真题题库', 'kaoyan-english-ii', 'articles'),
+    ],
     cacheRoot,
-    extractedPassagesFile: join(cacheRoot, 'word-bank-extracted-passages.json'),
+    extractedPassagesFile: join(cacheRoot, 'wordcram-article-passages.json'),
+    extractionWarningsFile: join(cacheRoot, 'wordcram-article-warnings.json'),
     batchInputFile: join(cacheRoot, 'openai-translation-batch-input.jsonl'),
     batchMetaFile: join(cacheRoot, 'openai-translation-batch.json'),
     batchOutputFile: join(cacheRoot, 'openai-translation-batch-output.jsonl'),
     importErrorsFile: join(cacheRoot, 'openai-translation-import-errors.json'),
   };
+}
+
+/**
+ * `hasEnglishOneAndTwoPassages` 判断缓存是否已经包含英语一和英语二。
+ */
+function hasEnglishOneAndTwoPassages(
+  passages: SelectedWordBankPassage[],
+): boolean {
+  const paperSet = new Set(passages.map((passage) => passage.paper));
+
+  return paperSet.has('英语一') && paperSet.has('英语二');
 }
 
 /**
@@ -68,23 +84,36 @@ async function ensureCacheRoot(paths: WordBankImportPaths): Promise<void> {
 }
 
 /**
- * `listWordBankMarkdownFiles` 返回需要处理的词库 Markdown 文件。
+ * `listWordBankMarkdownFiles` 返回需要处理的 WordCram 文章 Markdown 文件。
  */
 async function listWordBankMarkdownFiles(
   paths: WordBankImportPaths,
 ): Promise<string[]> {
-  const fileNames = await readdir(paths.wordBankRoot);
+  const markdownFiles: string[] = [];
 
-  return fileNames
-    .filter((fileName) =>
-      /^kaoyan-english-\d{4}-english-(i|ii)\.md$/.test(fileName),
-    )
-    .sort()
-    .map((fileName) => join(paths.wordBankRoot, fileName));
+  for (const wordBankRoot of paths.wordBankRoots) {
+    if (!existsSync(wordBankRoot)) {
+      continue;
+    }
+
+    const fileNames = await readdir(wordBankRoot);
+
+    markdownFiles.push(
+      ...fileNames
+        .filter((fileName) =>
+          /^\d{4}-kaoyan-english-(i|ii)-articles\.md$/.test(fileName),
+        )
+        .map((fileName) => join(wordBankRoot, fileName)),
+    );
+  }
+
+  return markdownFiles.sort((left, right) =>
+    basename(left).localeCompare(basename(right)),
+  );
 }
 
 /**
- * `extractWordBankPassages` 从词库文件中抽取并持久化每篇 Text 的一个随机段落。
+ * `extractWordBankPassages` 从 WordCram 文章文件中抽取并持久化每个自然段。
  */
 export async function extractWordBankPassages(
   paths: WordBankImportPaths,
@@ -93,24 +122,35 @@ export async function extractWordBankPassages(
   await ensureCacheRoot(paths);
 
   if (!forceResample && existsSync(paths.extractedPassagesFile)) {
-    return JSON.parse(
+    const cachedPassages = JSON.parse(
       await readFile(paths.extractedPassagesFile, 'utf8'),
     ) as SelectedWordBankPassage[];
+
+    if (hasEnglishOneAndTwoPassages(cachedPassages)) {
+      return cachedPassages;
+    }
   }
 
   const files = await listWordBankMarkdownFiles(paths);
   const selectedPassages: SelectedWordBankPassage[] = [];
+  const warnings: string[] = [];
 
   for (const file of files) {
     const markdown = await readFile(file, 'utf8');
     const extracted = extractReadingTextCandidates(markdown, basename(file));
 
     selectedPassages.push(...selectWordBankPassages(extracted));
+    warnings.push(...extracted.warnings);
   }
 
   await writeFile(
     paths.extractedPassagesFile,
     JSON.stringify(selectedPassages, null, 2),
+    'utf8',
+  );
+  await writeFile(
+    paths.extractionWarningsFile,
+    JSON.stringify(warnings, null, 2),
     'utf8',
   );
 
@@ -331,6 +371,8 @@ export async function upsertEnrichedPassages(
           paper: passage.paper,
           questionType: passage.questionType,
           passageIndex: passage.passageIndex,
+          textIndex: passage.textIndex,
+          paragraphIndex: passage.paragraphIndex,
           title: passage.title,
           sourceUrl: passage.sourceUrl,
           sourceDomain: passage.sourceDomain,
@@ -341,6 +383,8 @@ export async function upsertEnrichedPassages(
         },
         update: {
           title: passage.title,
+          textIndex: passage.textIndex,
+          paragraphIndex: passage.paragraphIndex,
           sourceUrl: passage.sourceUrl,
           sourceDomain: passage.sourceDomain,
           content: passage.content,

@@ -5,6 +5,8 @@ coverage/
 .vite/
 .env
 .env.local
+.dev-data/
+.dev-logs/
 .pnpm-store/
 pnpm-lock.yaml
 backend/prisma/dev.db
@@ -13,5 +15,5 @@ backend/uploads/
 content-cache/
 playwright-report/
 test-results/
+tmp_source_samples/
 .superpowers/
-词库/

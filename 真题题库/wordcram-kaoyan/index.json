@@ -1,0 +1,445 @@
+﻿{
+    "scope":  "public /tests/kaoyan/{year} pages only; PDF downloads and restricted flows intentionally excluded",
+    "source":  "WordCram",
+    "sourcePage":  "https://wordcram.com.cn/zhenti-kaoyan",
+    "failures":  [
+
+                 ],
+    "items":  [
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2026,
+                      "wordCount":  1737,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2026",
+                      "file":  "articles/2026-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2025,
+                      "wordCount":  1971,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2025",
+                      "file":  "articles/2025-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2024,
+                      "wordCount":  1902,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2024",
+                      "file":  "articles/2024-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2023,
+                      "wordCount":  1940,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2023",
+                      "file":  "articles/2023-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  4,
+                      "year":  2022,
+                      "wordCount":  1507,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2022",
+                      "file":  "articles/2022-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2021,
+                      "wordCount":  1904,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2021",
+                      "file":  "articles/2021-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2020,
+                      "wordCount":  1960,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2020",
+                      "file":  "articles/2020-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2019,
+                      "wordCount":  1945,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2019",
+                      "file":  "articles/2019-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2018,
+                      "wordCount":  1930,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2018",
+                      "file":  "articles/2018-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2017,
+                      "wordCount":  1924,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2017",
+                      "file":  "articles/2017-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2016,
+                      "wordCount":  1970,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2016",
+                      "file":  "articles/2016-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2015,
+                      "wordCount":  1977,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2015",
+                      "file":  "articles/2015-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2014,
+                      "wordCount":  1951,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2014",
+                      "file":  "articles/2014-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2013,
+                      "wordCount":  1936,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2013",
+                      "file":  "articles/2013-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2012,
+                      "wordCount":  1990,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2012",
+                      "file":  "articles/2012-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2011,
+                      "wordCount":  2004,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2011",
+                      "file":  "articles/2011-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2010,
+                      "wordCount":  1980,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2010",
+                      "file":  "articles/2010-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2009,
+                      "wordCount":  1913,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2009",
+                      "file":  "articles/2009-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2008,
+                      "wordCount":  1901,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2008",
+                      "file":  "articles/2008-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2007,
+                      "wordCount":  1946,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2007",
+                      "file":  "articles/2007-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2006,
+                      "wordCount":  1929,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2006",
+                      "file":  "articles/2006-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2005,
+                      "wordCount":  1955,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2005",
+                      "file":  "articles/2005-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2004,
+                      "wordCount":  1900,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2004",
+                      "file":  "articles/2004-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2003,
+                      "wordCount":  1918,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2003",
+                      "file":  "articles/2003-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2002,
+                      "wordCount":  1959,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2002",
+                      "file":  "articles/2002-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2001,
+                      "wordCount":  1902,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2001",
+                      "file":  "articles/2001-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  2000,
+                      "wordCount":  1762,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/2000",
+                      "file":  "articles/2000-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  1999,
+                      "wordCount":  1860,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/1999",
+                      "file":  "articles/1999-kaoyan-english-i-articles.md"
+                  },
+                  {
+                      "titles":  [
+                                     "Section I Use of English",
+                                     "Text 1",
+                                     "Text 2",
+                                     "Text 3",
+                                     "Text 4"
+                                 ],
+                      "paper":  "english-i",
+                      "articleCount":  5,
+                      "year":  1998,
+                      "wordCount":  1711,
+                      "sourceUrl":  "https://wordcram.com.cn/tests/kaoyan/1998",
+                      "file":  "articles/1998-kaoyan-english-i-articles.md"
+                  }
+              ],
+    "generatedAt":  "2026-05-13T17:00:04.9280688+08:00"
+}

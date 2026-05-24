@@ -18,6 +18,8 @@ function createPassage(translation = PLACEHOLDER_TRANSLATION): PassageRecord {
     paper: '英语一',
     questionType: 'reading',
     passageIndex: 1,
+    textIndex: 1,
+    paragraphIndex: 1,
     title: 'Runtime Translation',
     content: 'Obscure theories align with patient practice.',
     sourceUrl: 'https://example.com/passage',

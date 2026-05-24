@@ -41,6 +41,8 @@ export interface PassageSummary {
   paper: string;
   questionType: QuestionType;
   passageIndex: number;
+  textIndex: number;
+  paragraphIndex: number;
   title: string;
   content: string;
   sourceUrl: string;
@@ -94,6 +96,7 @@ export interface AuthResponse {
 export interface RegisterRequest {
   email: string;
   password: string;
+  emailCode: string;
 }
 
 /**
@@ -102,6 +105,45 @@ export interface RegisterRequest {
 export interface LoginRequest {
   email: string;
   password: string;
+  rememberLogin?: boolean;
+}
+
+/**
+ * `EmailCodePurpose` 定义邮箱验证码使用场景。
+ */
+export type EmailCodePurpose = 'register' | 'login' | 'reset-password';
+
+/**
+ * `SendEmailCodeRequest` 描述发送邮箱验证码入参。
+ */
+export interface SendEmailCodeRequest {
+  email: string;
+  purpose: EmailCodePurpose;
+}
+
+/**
+ * `SendEmailCodeResponse` 描述验证码发送接口响应。
+ */
+export interface SendEmailCodeResponse {
+  success: true;
+}
+
+/**
+ * `EmailCodeLoginRequest` 描述邮箱验证码登录入参。
+ */
+export interface EmailCodeLoginRequest {
+  email: string;
+  emailCode: string;
+  rememberLogin?: boolean;
+}
+
+/**
+ * `ResetPasswordRequest` 描述验证码重置密码入参。
+ */
+export interface ResetPasswordRequest {
+  email: string;
+  emailCode: string;
+  newPassword: string;
   rememberLogin?: boolean;
 }
 

@@ -72,6 +72,8 @@ export class ReadingService {
         paper: translatedPassage.paper,
         questionType: translatedPassage.questionType,
         passageIndex: translatedPassage.passageIndex,
+        textIndex: translatedPassage.textIndex,
+        paragraphIndex: translatedPassage.paragraphIndex,
         title: translatedPassage.title,
         content: translatedPassage.content,
         sourceUrl: translatedPassage.sourceUrl,

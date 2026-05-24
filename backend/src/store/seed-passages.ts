@@ -13,12 +13,24 @@ interface SeedPassageInput {
   year: number;
   paper: string;
   passageIndex: number;
+  textIndex: number;
+  paragraphIndex: number;
   title: string;
   content: string;
   sourceUrl: string;
 }
 
-const wordBankFilePattern = /^kaoyan-english-\d{4}-english-(i|ii)\.md$/;
+const wordBankFilePattern = /^\d{4}-kaoyan-english-(i|ii)-articles\.md$/;
+
+/**
+ * `createArticleRoots` 返回内存题库允许读取的真题文章目录。
+ */
+function createArticleRoots(workspaceRoot: string): string[] {
+  return [
+    join(workspaceRoot, '真题题库', 'wordcram-kaoyan', 'articles'),
+    join(workspaceRoot, '真题题库', 'kaoyan-english-ii', 'articles'),
+  ];
+}
 
 /**
  * `guessPartOfSpeech` 为内置种子 token 生成轻量级词性。
@@ -118,6 +130,8 @@ function createSeedPassage(input: SeedPassageInput): PassageRecord {
     paper: input.paper,
     questionType: 'reading',
     passageIndex: input.passageIndex,
+    textIndex: input.textIndex,
+    paragraphIndex: input.paragraphIndex,
     title: input.title,
     content: input.content,
     sourceUrl: input.sourceUrl,
@@ -129,13 +143,22 @@ function createSeedPassage(input: SeedPassageInput): PassageRecord {
 }
 
 /**
- * `findWorkspaceRoot` 从当前目录向上查找包含词库目录的仓库根目录。
+ * `hasRequiredArticleRoots` 判断仓库是否包含运行时需要的文章题库目录。
+ */
+function hasRequiredArticleRoots(workspaceRoot: string): boolean {
+  return createArticleRoots(workspaceRoot).every((articleRoot) =>
+    existsSync(articleRoot),
+  );
+}
+
+/**
+ * `findWorkspaceRoot` 从当前目录向上查找包含真题题库目录的仓库根目录。
  */
 function findWorkspaceRoot(startDirectory = process.cwd()): string | null {
   let currentDirectory = resolve(startDirectory);
 
   for (let depth = 0; depth < 6; depth += 1) {
-    if (existsSync(join(currentDirectory, '词库'))) {
+    if (hasRequiredArticleRoots(currentDirectory)) {
       return currentDirectory;
     }
 
@@ -160,6 +183,8 @@ function toSeedInput(passage: SelectedWordBankPassage): SeedPassageInput {
     year: passage.year,
     paper: passage.paper,
     passageIndex: passage.passageIndex,
+    textIndex: passage.textIndex,
+    paragraphIndex: passage.paragraphIndex,
     title: passage.title,
     content: passage.content,
     sourceUrl: passage.sourceUrl,
@@ -174,6 +199,24 @@ function isExpandedSeedInputList(inputs: SeedPassageInput[]): boolean {
 }
 
 /**
+ * `hasEnglishOneAndTwoSeedInputs` 判断种子题库是否同时覆盖英语一和英语二。
+ */
+function hasEnglishOneAndTwoSeedInputs(inputs: SeedPassageInput[]): boolean {
+  const paperSet = new Set(inputs.map((input) => input.paper));
+
+  return paperSet.has('英语一') && paperSet.has('英语二');
+}
+
+/**
+ * `isUsableSeedInputList` 判断种子列表是否可作为完整运行时题库。
+ */
+function isUsableSeedInputList(inputs: SeedPassageInput[]): boolean {
+  return (
+    isExpandedSeedInputList(inputs) && hasEnglishOneAndTwoSeedInputs(inputs)
+  );
+}
+
+/**
  * `loadCachedSeedInputs` 优先读取内容抽取命令已经生成的段落缓存。
  */
 function loadCachedSeedInputs(
@@ -182,7 +225,7 @@ function loadCachedSeedInputs(
   const cacheFile = join(
     workspaceRoot,
     'content-cache',
-    'word-bank-extracted-passages.json',
+    'wordcram-article-passages.json',
   );
 
   if (!existsSync(cacheFile)) {
@@ -194,28 +237,35 @@ function loadCachedSeedInputs(
   ) as SelectedWordBankPassage[];
   const seedInputs = cachedPassages.map(toSeedInput);
 
-  return isExpandedSeedInputList(seedInputs) ? seedInputs : null;
+  return isUsableSeedInputList(seedInputs) ? seedInputs : null;
 }
 
 /**
- * `extractSeedInputsFromWordBank` 从仓库词库 Markdown 中生成内存题库种子。
+ * `extractSeedInputsFromWordBank` 从 WordCram 文章 Markdown 中生成内存题库种子。
  */
 function extractSeedInputsFromWordBank(
   workspaceRoot: string,
 ): SeedPassageInput[] {
-  const wordBankRoot = join(workspaceRoot, '词库');
-  const wordBankFiles = readdirSync(wordBankRoot)
-    .filter((fileName) => wordBankFilePattern.test(fileName))
-    .sort();
+  const wordBankFiles = createArticleRoots(workspaceRoot)
+    .flatMap((wordBankRoot) =>
+      readdirSync(wordBankRoot)
+        .filter((fileName) => wordBankFilePattern.test(fileName))
+        .map((fileName) => join(wordBankRoot, fileName)),
+    )
+    .sort((left, right) => {
+      const leftFileName = left.split(/[\\/]/).at(-1) ?? left;
+      const rightFileName = right.split(/[\\/]/).at(-1) ?? right;
+
+      return leftFileName.localeCompare(rightFileName);
+    });
   const seedInputs: SeedPassageInput[] = [];
 
-  for (const fileName of wordBankFiles) {
-    const markdown = readFileSync(join(wordBankRoot, fileName), 'utf8');
+  for (const file of wordBankFiles) {
+    const fileName = file.split(/[\\/]/).at(-1) ?? file;
+    const markdown = readFileSync(file, 'utf8');
     const extracted = extractReadingTextCandidates(markdown, fileName);
 
-    seedInputs.push(
-      ...selectWordBankPassages(extracted, () => 0).map(toSeedInput),
-    );
+    seedInputs.push(...selectWordBankPassages(extracted).map(toSeedInput));
   }
 
   return seedInputs;
@@ -239,7 +289,7 @@ function loadSeedInputs(): SeedPassageInput[] {
 
   const extractedSeedInputs = extractSeedInputsFromWordBank(workspaceRoot);
 
-  return isExpandedSeedInputList(extractedSeedInputs)
+  return isUsableSeedInputList(extractedSeedInputs)
     ? extractedSeedInputs
     : fallbackSeedInputs;
 }
@@ -250,6 +300,8 @@ const fallbackSeedInputs: SeedPassageInput[] = [
     year: 2022,
     paper: '英语一',
     passageIndex: 1,
+    textIndex: 1,
+    paragraphIndex: 1,
     title: '2022 英语一 Text 1',
     sourceUrl:
       'https://raw.githubusercontent.com/Fantasia1999/kaoyanzhenti/main/2022-english-i.pdf',
@@ -261,6 +313,8 @@ const fallbackSeedInputs: SeedPassageInput[] = [
     year: 2017,
     paper: '英语一',
     passageIndex: 1,
+    textIndex: 1,
+    paragraphIndex: 1,
     title: '2017 英语一 Text 1',
     sourceUrl:
       'https://raw.githubusercontent.com/Fantasia1999/kaoyanzhenti/main/2017-english-i.pdf',

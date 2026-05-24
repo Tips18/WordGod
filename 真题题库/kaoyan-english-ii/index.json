@@ -1,0 +1,429 @@
+{
+  "source": "IQihang public files, EOL public HTML, and BurningVocabulary public PDF viewer pages",
+  "sourcePages": [
+    "https://jixun.iqihang.com/zlzx/ggkzt/yy2/",
+    "https://kaoyan.eol.cn/shiti/yingyu/",
+    "https://zhenti.burningvocabulary.cn/kaoyan"
+  ],
+  "generatedAt": "2026-05-15T14:42:49.047751+00:00",
+  "scope": "Kaoyan English II article bodies standardized as Markdown by year; restricted flows and answer analysis excluded",
+  "items": [
+    {
+      "year": 2010,
+      "paper": "english-ii",
+      "sourceName": "IQihang public file",
+      "sourceUrl": "https://jixun.iqihang.com/uploadfile/2017/0421/20170421112316795.zip",
+      "sourceDomain": "jixun.iqihang.com",
+      "sourcePdfUrl": null,
+      "file": "articles/2010-kaoyan-english-ii-articles.md",
+      "articleCount": 5,
+      "wordCount": 1942,
+      "paragraphCount": 27,
+      "titles": [
+        "Section I Use of English",
+        "Text 1",
+        "Text 2",
+        "Text 3",
+        "Text 4"
+      ],
+      "paragraphCounts": {
+        "Section I Use of English": 6,
+        "Text 1": 5,
+        "Text 2": 5,
+        "Text 3": 7,
+        "Text 4": 4
+      },
+      "warnings": []
+    },
+    {
+      "year": 2013,
+      "paper": "english-ii",
+      "sourceName": "IQihang public file",
+      "sourceUrl": "https://jixun.iqihang.com/uploadfile/2017/0421/20170421112403237.zip",
+      "sourceDomain": "jixun.iqihang.com",
+      "sourcePdfUrl": null,
+      "file": "articles/2013-kaoyan-english-ii-articles.md",
+      "articleCount": 5,
+      "wordCount": 1935,
+      "paragraphCount": 24,
+      "titles": [
+        "Section I Use of English",
+        "Text 1",
+        "Text 2",
+        "Text 3",
+        "Text 4"
+      ],
+      "paragraphCounts": {
+        "Section I Use of English": 3,
+        "Text 1": 5,
+        "Text 2": 3,
+        "Text 3": 6,
+        "Text 4": 7
+      },
+      "warnings": []
+    },
+    {
+      "year": 2014,
+      "paper": "english-ii",
+      "sourceName": "IQihang public file",
+      "sourceUrl": "https://jixun.iqihang.com/uploadfile/2017/0421/20170421112419546.zip",
+      "sourceDomain": "jixun.iqihang.com",
+      "sourcePdfUrl": null,
+      "file": "articles/2014-kaoyan-english-ii-articles.md",
+      "articleCount": 5,
+      "wordCount": 1842,
+      "paragraphCount": 26,
+      "titles": [
+        "Section I Use of English",
+        "Text 1",
+        "Text 2",
+        "Text 3",
+        "Text 4"
+      ],
+      "paragraphCounts": {
+        "Section I Use of English": 5,
+        "Text 1": 4,
+        "Text 2": 3,
+        "Text 3": 7,
+        "Text 4": 7
+      },
+      "warnings": []
+    },
+    {
+      "year": 2015,
+      "paper": "english-ii",
+      "sourceName": "IQihang public file",
+      "sourceUrl": "https://jixun.iqihang.com/uploadfile/2017/0320/20170320043038734.zip",
+      "sourceDomain": "jixun.iqihang.com",
+      "sourcePdfUrl": null,
+      "file": "articles/2015-kaoyan-english-ii-articles.md",
+      "articleCount": 5,
+      "wordCount": 1957,
+      "paragraphCount": 28,
+      "titles": [
+        "Section I Use of English",
+        "Text 1",
+        "Text 2",
+        "Text 3",
+        "Text 4"
+      ],
+      "paragraphCounts": {
+        "Section I Use of English": 5,
+        "Text 1": 6,
+        "Text 2": 5,
+        "Text 3": 5,
+        "Text 4": 7
+      },
+      "warnings": []
+    },
+    {
+      "year": 2016,
+      "paper": "english-ii",
+      "sourceName": "IQihang public file",
+      "sourceUrl": "https://jixun.iqihang.com/uploadfile/2017/0421/20170421112436858.zip",
+      "sourceDomain": "jixun.iqihang.com",
+      "sourcePdfUrl": null,
+      "file": "articles/2016-kaoyan-english-ii-articles.md",
+      "articleCount": 5,
+      "wordCount": 1973,
+      "paragraphCount": 24,
+      "titles": [
+        "Section I Use of English",
+        "Text 1",
+        "Text 2",
+        "Text 3",
+        "Text 4"
+      ],
+      "paragraphCounts": {
+        "Section I Use of English": 4,
+        "Text 1": 6,
+        "Text 2": 4,
+        "Text 3": 4,
+        "Text 4": 6
+      },
+      "warnings": []
+    },
+    {
+      "year": 2017,
+      "paper": "english-ii",
+      "sourceName": "IQihang public file",
+      "sourceUrl": "https://jixun.iqihang.com/uploadfile/2017/0320/20170320043101815.zip",
+      "sourceDomain": "jixun.iqihang.com",
+      "sourcePdfUrl": null,
+      "file": "articles/2017-kaoyan-english-ii-articles.md",
+      "articleCount": 5,
+      "wordCount": 1952,
+      "paragraphCount": 25,
+      "titles": [
+        "Section I Use of English",
+        "Text 1",
+        "Text 2",
+        "Text 3",
+        "Text 4"
+      ],
+      "paragraphCounts": {
+        "Section I Use of English": 4,
+        "Text 1": 4,
+        "Text 2": 3,
+        "Text 3": 4,
+        "Text 4": 10
+      },
+      "warnings": []
+    },
+    {
+      "year": 2018,
+      "paper": "english-ii",
+      "sourceName": "EOL public HTML",
+      "sourceUrl": "https://kaoyan.eol.cn/shiti/yingyu/201712/t20171223_1575588.shtml",
+      "sourceDomain": "kaoyan.eol.cn",
+      "sourcePdfUrl": null,
+      "file": "articles/2018-kaoyan-english-ii-articles.md",
+      "articleCount": 5,
+      "wordCount": 1922,
+      "paragraphCount": 33,
+      "titles": [
+        "Section I Use of English",
+        "Text 1",
+        "Text 2",
+        "Text 3",
+        "Text 4"
+      ],
+      "paragraphCounts": {
+        "Section I Use of English": 5,
+        "Text 1": 8,
+        "Text 2": 7,
+        "Text 3": 4,
+        "Text 4": 9
+      },
+      "warnings": []
+    },
+    {
+      "year": 2019,
+      "paper": "english-ii",
+      "sourceName": "EOL public HTML",
+      "sourceUrl": "https://kaoyan.eol.cn/nnews/201812/t20181223_1638266.shtml",
+      "sourceDomain": "kaoyan.eol.cn",
+      "sourcePdfUrl": null,
+      "file": "articles/2019-kaoyan-english-ii-articles.md",
+      "articleCount": 5,
+      "wordCount": 2008,
+      "paragraphCount": 36,
+      "titles": [
+        "Section I Use of English",
+        "Text 1",
+        "Text 2",
+        "Text 3",
+        "Text 4"
+      ],
+      "paragraphCounts": {
+        "Section I Use of English": 7,
+        "Text 1": 6,
+        "Text 2": 7,
+        "Text 3": 8,
+        "Text 4": 8
+      },
+      "warnings": []
+    },
+    {
+      "year": 2020,
+      "paper": "english-ii",
+      "sourceName": "BurningVocabulary public PDF viewer",
+      "sourceUrl": "https://zhenti.burningvocabulary.cn/kaoyan/2020/02",
+      "sourceDomain": "zhenti.burningvocabulary.cn",
+      "sourcePdfUrl": "https://res-zhenti.burningvocabulary.cn/images/read/kaoyan/2020/02/177492ea4d7827cf0c6a4e4d12c90fec.pdf?v=2",
+      "file": "articles/2020-kaoyan-english-ii-articles.md",
+      "articleCount": 5,
+      "wordCount": 2016,
+      "paragraphCount": 30,
+      "titles": [
+        "Section I Use of English",
+        "Text 1",
+        "Text 2",
+        "Text 3",
+        "Text 4"
+      ],
+      "paragraphCounts": {
+        "Section I Use of English": 7,
+        "Text 1": 7,
+        "Text 2": 5,
+        "Text 3": 7,
+        "Text 4": 4
+      },
+      "warnings": []
+    },
+    {
+      "year": 2021,
+      "paper": "english-ii",
+      "sourceName": "BurningVocabulary public PDF viewer",
+      "sourceUrl": "https://zhenti.burningvocabulary.cn/kaoyan/2021/02",
+      "sourceDomain": "zhenti.burningvocabulary.cn",
+      "sourcePdfUrl": "https://res-zhenti.burningvocabulary.cn/images/read/kaoyan/2021/02/89665107bcc6bf2c877d1960f7b9a4a3.pdf?v=1",
+      "file": "articles/2021-kaoyan-english-ii-articles.md",
+      "articleCount": 5,
+      "wordCount": 1960,
+      "paragraphCount": 36,
+      "titles": [
+        "Section I Use of English",
+        "Text 1",
+        "Text 2",
+        "Text 3",
+        "Text 4"
+      ],
+      "paragraphCounts": {
+        "Section I Use of English": 9,
+        "Text 1": 5,
+        "Text 2": 6,
+        "Text 3": 9,
+        "Text 4": 7
+      },
+      "warnings": []
+    },
+    {
+      "year": 2022,
+      "paper": "english-ii",
+      "sourceName": "BurningVocabulary public PDF viewer",
+      "sourceUrl": "https://zhenti.burningvocabulary.cn/kaoyan/2022/02",
+      "sourceDomain": "zhenti.burningvocabulary.cn",
+      "sourcePdfUrl": "https://res-zhenti.burningvocabulary.cn/images/read/kaoyan/2022/02/c3843706eb755f2854868834b565b6aa.pdf?v=4",
+      "file": "articles/2022-kaoyan-english-ii-articles.md",
+      "articleCount": 5,
+      "wordCount": 2046,
+      "paragraphCount": 38,
+      "titles": [
+        "Section I Use of English",
+        "Text 1",
+        "Text 2",
+        "Text 3",
+        "Text 4"
+      ],
+      "paragraphCounts": {
+        "Section I Use of English": 6,
+        "Text 1": 7,
+        "Text 2": 12,
+        "Text 3": 6,
+        "Text 4": 7
+      },
+      "warnings": []
+    },
+    {
+      "year": 2023,
+      "paper": "english-ii",
+      "sourceName": "BurningVocabulary public PDF viewer",
+      "sourceUrl": "https://zhenti.burningvocabulary.cn/kaoyan/2023/02",
+      "sourceDomain": "zhenti.burningvocabulary.cn",
+      "sourcePdfUrl": "https://res-zhenti.burningvocabulary.cn/images/read/kaoyan/2023/02/7cf6a36c4321bb2802a8cc3f691cbccd.pdf?v=3",
+      "file": "articles/2023-kaoyan-english-ii-articles.md",
+      "articleCount": 5,
+      "wordCount": 1966,
+      "paragraphCount": 42,
+      "titles": [
+        "Section I Use of English",
+        "Text 1",
+        "Text 2",
+        "Text 3",
+        "Text 4"
+      ],
+      "paragraphCounts": {
+        "Section I Use of English": 7,
+        "Text 1": 8,
+        "Text 2": 11,
+        "Text 3": 5,
+        "Text 4": 11
+      },
+      "warnings": []
+    },
+    {
+      "year": 2024,
+      "paper": "english-ii",
+      "sourceName": "BurningVocabulary public PDF viewer",
+      "sourceUrl": "https://zhenti.burningvocabulary.cn/kaoyan/2024/02",
+      "sourceDomain": "zhenti.burningvocabulary.cn",
+      "sourcePdfUrl": "https://res-zhenti.burningvocabulary.cn/images/read/kaoyan/2024/02/15dc365383b0b7ca2b477778c0a0ece5.pdf?v=2",
+      "file": "articles/2024-kaoyan-english-ii-articles.md",
+      "articleCount": 5,
+      "wordCount": 1946,
+      "paragraphCount": 32,
+      "titles": [
+        "Section I Use of English",
+        "Text 1",
+        "Text 2",
+        "Text 3",
+        "Text 4"
+      ],
+      "paragraphCounts": {
+        "Section I Use of English": 4,
+        "Text 1": 9,
+        "Text 2": 6,
+        "Text 3": 7,
+        "Text 4": 6
+      },
+      "warnings": []
+    },
+    {
+      "year": 2025,
+      "paper": "english-ii",
+      "sourceName": "BurningVocabulary public PDF viewer",
+      "sourceUrl": "https://zhenti.burningvocabulary.cn/kaoyan/2025/02",
+      "sourceDomain": "zhenti.burningvocabulary.cn",
+      "sourcePdfUrl": "https://res-zhenti.burningvocabulary.cn/images/read/kaoyan/2025/02/c7df44463406bda974a3a873edf3444a.pdf?v=1",
+      "file": "articles/2025-kaoyan-english-ii-articles.md",
+      "articleCount": 5,
+      "wordCount": 1939,
+      "paragraphCount": 36,
+      "titles": [
+        "Section I Use of English",
+        "Text 1",
+        "Text 2",
+        "Text 3",
+        "Text 4"
+      ],
+      "paragraphCounts": {
+        "Section I Use of English": 6,
+        "Text 1": 10,
+        "Text 2": 8,
+        "Text 3": 6,
+        "Text 4": 6
+      },
+      "warnings": []
+    },
+    {
+      "year": 2026,
+      "paper": "english-ii",
+      "sourceName": "BurningVocabulary public PDF viewer",
+      "sourceUrl": "https://zhenti.burningvocabulary.cn/kaoyan/2026/02",
+      "sourceDomain": "zhenti.burningvocabulary.cn",
+      "sourcePdfUrl": "https://res-zhenti.burningvocabulary.cn/images/read/kaoyan/2026/02/4ccaf87074e41a776a847fb7bf6e6fe5.pdf?v=1",
+      "file": "articles/2026-kaoyan-english-ii-articles.md",
+      "articleCount": 5,
+      "wordCount": 1953,
+      "paragraphCount": 35,
+      "titles": [
+        "Section I Use of English",
+        "Text 1",
+        "Text 2",
+        "Text 3",
+        "Text 4"
+      ],
+      "paragraphCounts": {
+        "Section I Use of English": 7,
+        "Text 1": 8,
+        "Text 2": 4,
+        "Text 3": 8,
+        "Text 4": 8
+      },
+      "warnings": []
+    }
+  ],
+  "failures": [
+    {
+      "year": 2011,
+      "paper": "english-ii",
+      "reason": "no_selected_public_source"
+    },
+    {
+      "year": 2012,
+      "paper": "english-ii",
+      "reason": "no_selected_public_source"
+    }
+  ]
+}

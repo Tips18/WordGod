@@ -227,7 +227,7 @@ function getEcdictMarkdownFile(): string {
 }
 
 /**
- * `runExtractWordBank` 从词库 Markdown 抽取每篇 Text 的一个随机正文段。
+ * `runExtractWordBank` 从 WordCram articles 抽取每个 Text 的自然段。
  */
 async function runExtractWordBank() {
   const selected = await extractWordBankPassages(

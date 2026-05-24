@@ -141,6 +141,8 @@ export function ingestNormalizedPassages(
       paper: input.paper,
       questionType: input.questionType,
       passageIndex: index + 1,
+      textIndex: index + 1,
+      paragraphIndex: 1,
       title: input.title,
       content: restoredParagraph,
       sourceUrl: input.sourceUrl,

@@ -1,4 +1,5 @@
 import {
+  EmailCodePurpose,
   PassageSentence,
   PassageToken,
   PassageSummary,
@@ -23,6 +24,21 @@ export interface AuthSessionRecord {
   userId: string;
   refreshTokenHash: string;
   expiresAt: string;
+  createdAt: string;
+}
+
+/**
+ * `EmailVerificationCodeRecord` 描述邮箱验证码生命周期记录。
+ */
+export interface EmailVerificationCodeRecord {
+  id: string;
+  email: string;
+  purpose: EmailCodePurpose;
+  codeHash: string;
+  expiresAt: string;
+  consumedAt: string | null;
+  attemptCount: number;
+  lastSentAt: string;
   createdAt: string;
 }
 
@@ -106,6 +122,7 @@ export interface CrawlJobRecord {
 export interface StoreSeed {
   users: UserRecord[];
   sessions: AuthSessionRecord[];
+  emailVerificationCodes: EmailVerificationCodeRecord[];
   passages: PassageRecord[];
   attempts: ReadingAttemptRecord[];
   vocabularyEntries: VocabularyEntryRecord[];

@@ -1,7 +1,10 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
+import { dirname } from 'node:path';
 import {
   AuthSessionRecord,
   CrawlJobRecord,
+  EmailVerificationCodeRecord,
   LexiconEntryRecord,
   PassageRecord,
   ReadingAttemptRecord,
@@ -12,12 +15,80 @@ import {
 } from './store.types';
 import { AppStore } from './app-store';
 
+export interface InMemoryAppStoreOptions {
+  persistencePath?: string;
+}
+
+type PersistedMemoryStore = Pick<
+  StoreSeed,
+  | 'users'
+  | 'sessions'
+  | 'emailVerificationCodes'
+  | 'attempts'
+  | 'vocabularyEntries'
+  | 'vocabularyContexts'
+  | 'lexiconEntries'
+  | 'crawlJobs'
+>;
+
+/**
+ * `readPersistedMemoryStore` 从本地 JSON 文件读取内存存储的运行态数据。
+ */
+function readPersistedMemoryStore(
+  persistencePath: string | undefined,
+): Partial<PersistedMemoryStore> {
+  if (!persistencePath || !existsSync(persistencePath)) {
+    return {};
+  }
+
+  const parsed = JSON.parse(readFileSync(persistencePath, 'utf8')) as Partial<
+    Record<keyof PersistedMemoryStore, unknown>
+  >;
+
+  return {
+    users: Array.isArray(parsed.users) ? (parsed.users as UserRecord[]) : [],
+    sessions: Array.isArray(parsed.sessions)
+      ? (parsed.sessions as AuthSessionRecord[])
+      : [],
+    emailVerificationCodes: Array.isArray(parsed.emailVerificationCodes)
+      ? (parsed.emailVerificationCodes as EmailVerificationCodeRecord[])
+      : [],
+    attempts: Array.isArray(parsed.attempts)
+      ? (parsed.attempts as ReadingAttemptRecord[])
+      : [],
+    vocabularyEntries: Array.isArray(parsed.vocabularyEntries)
+      ? (parsed.vocabularyEntries as VocabularyEntryRecord[])
+      : [],
+    vocabularyContexts: Array.isArray(parsed.vocabularyContexts)
+      ? (parsed.vocabularyContexts as VocabularyContextRecord[])
+      : [],
+    lexiconEntries: Array.isArray(parsed.lexiconEntries)
+      ? (parsed.lexiconEntries as LexiconEntryRecord[])
+      : [],
+    crawlJobs: Array.isArray(parsed.crawlJobs)
+      ? (parsed.crawlJobs as CrawlJobRecord[])
+      : [],
+  };
+}
+
+/**
+ * `resolveSeedArray` 在持久化数据存在时优先使用持久化数组。
+ */
+function resolveSeedArray<T>(
+  persistedItems: T[] | undefined,
+  seedItems: T[] | undefined,
+): T[] {
+  return [...(persistedItems ?? seedItems ?? [])];
+}
+
 /**
  * `InMemoryAppStore` 为当前服务提供可测试的内存数据存储。
  */
 export class InMemoryAppStore implements AppStore {
+  private readonly persistencePath: string | null;
   private readonly users: UserRecord[];
   private readonly sessions: AuthSessionRecord[];
+  private readonly emailVerificationCodes: EmailVerificationCodeRecord[];
   private readonly passages: PassageRecord[];
   private readonly attempts: ReadingAttemptRecord[];
   private readonly vocabularyEntries: VocabularyEntryRecord[];
@@ -28,15 +99,60 @@ export class InMemoryAppStore implements AppStore {
   /**
    * `constructor` 使用可选种子数据初始化内存状态。
    */
-  constructor(seed?: Partial<StoreSeed>) {
-    this.users = [...(seed?.users ?? [])];
-    this.sessions = [...(seed?.sessions ?? [])];
+  constructor(seed?: Partial<StoreSeed>, options?: InMemoryAppStoreOptions) {
+    const persistedSeed = readPersistedMemoryStore(options?.persistencePath);
+
+    this.persistencePath = options?.persistencePath ?? null;
+    this.users = resolveSeedArray(persistedSeed.users, seed?.users);
+    this.sessions = resolveSeedArray(persistedSeed.sessions, seed?.sessions);
+    this.emailVerificationCodes = resolveSeedArray(
+      persistedSeed.emailVerificationCodes,
+      seed?.emailVerificationCodes,
+    );
     this.passages = [...(seed?.passages ?? [])];
-    this.attempts = [...(seed?.attempts ?? [])];
-    this.vocabularyEntries = [...(seed?.vocabularyEntries ?? [])];
-    this.vocabularyContexts = [...(seed?.vocabularyContexts ?? [])];
-    this.lexiconEntries = [...(seed?.lexiconEntries ?? [])];
-    this.crawlJobs = [...(seed?.crawlJobs ?? [])];
+    this.attempts = resolveSeedArray(persistedSeed.attempts, seed?.attempts);
+    this.vocabularyEntries = resolveSeedArray(
+      persistedSeed.vocabularyEntries,
+      seed?.vocabularyEntries,
+    );
+    this.vocabularyContexts = resolveSeedArray(
+      persistedSeed.vocabularyContexts,
+      seed?.vocabularyContexts,
+    );
+    this.lexiconEntries = resolveSeedArray(
+      persistedSeed.lexiconEntries,
+      seed?.lexiconEntries,
+    );
+    this.crawlJobs = resolveSeedArray(persistedSeed.crawlJobs, seed?.crawlJobs);
+  }
+
+  /**
+   * `persistRuntimeState` 将内存运行态数据写入本地 JSON 文件。
+   */
+  private persistRuntimeState(): void {
+    if (!this.persistencePath) {
+      return;
+    }
+
+    mkdirSync(dirname(this.persistencePath), { recursive: true });
+    writeFileSync(
+      this.persistencePath,
+      JSON.stringify(
+        {
+          users: this.users,
+          sessions: this.sessions,
+          emailVerificationCodes: this.emailVerificationCodes,
+          attempts: this.attempts,
+          vocabularyEntries: this.vocabularyEntries,
+          vocabularyContexts: this.vocabularyContexts,
+          lexiconEntries: this.lexiconEntries,
+          crawlJobs: this.crawlJobs,
+        },
+        null,
+        2,
+      ),
+      'utf8',
+    );
   }
 
   /**
@@ -69,10 +185,12 @@ export class InMemoryAppStore implements AppStore {
 
     if (existingIndex >= 0) {
       this.users[existingIndex] = savedUser;
+      this.persistRuntimeState();
       return savedUser;
     }
 
     this.users.push(savedUser);
+    this.persistRuntimeState();
     return savedUser;
   }
 
@@ -92,10 +210,12 @@ export class InMemoryAppStore implements AppStore {
 
     if (existingIndex >= 0) {
       this.sessions[existingIndex] = savedSession;
+      this.persistRuntimeState();
       return savedSession;
     }
 
     this.sessions.push(savedSession);
+    this.persistRuntimeState();
     return savedSession;
   }
 
@@ -132,6 +252,78 @@ export class InMemoryAppStore implements AppStore {
 
     if (sessionIndex >= 0) {
       this.sessions.splice(sessionIndex, 1);
+      this.persistRuntimeState();
+    }
+  }
+
+  /**
+   * `findLatestEmailCode` 返回指定邮箱和用途的最新验证码记录。
+   */
+  findLatestEmailCode(
+    email: string,
+    purpose: EmailVerificationCodeRecord['purpose'],
+  ): EmailVerificationCodeRecord | undefined {
+    return [...this.emailVerificationCodes]
+      .filter(
+        (code) =>
+          code.email.toLowerCase() === email.toLowerCase() &&
+          code.purpose === purpose,
+      )
+      .sort(
+        (left, right) =>
+          new Date(right.createdAt).getTime() -
+          new Date(left.createdAt).getTime(),
+      )[0];
+  }
+
+  /**
+   * `saveEmailCode` 写入或更新邮箱验证码记录。
+   */
+  saveEmailCode(
+    code: Omit<EmailVerificationCodeRecord, 'id'> & { id?: string },
+  ): EmailVerificationCodeRecord {
+    const existingIndex = code.id
+      ? this.emailVerificationCodes.findIndex((item) => item.id === code.id)
+      : -1;
+    const savedCode: EmailVerificationCodeRecord = {
+      id: code.id ?? randomUUID(),
+      ...code,
+    };
+
+    if (existingIndex >= 0) {
+      this.emailVerificationCodes[existingIndex] = savedCode;
+      this.persistRuntimeState();
+      return savedCode;
+    }
+
+    this.emailVerificationCodes.push(savedCode);
+    this.persistRuntimeState();
+    return savedCode;
+  }
+
+  /**
+   * `invalidateEmailCodes` 将同邮箱同用途的未消费验证码标记为已作废。
+   */
+  invalidateEmailCodes(
+    email: string,
+    purpose: EmailVerificationCodeRecord['purpose'],
+    consumedAt: string,
+  ): void {
+    let invalidated = false;
+
+    for (const code of this.emailVerificationCodes) {
+      if (
+        code.email.toLowerCase() === email.toLowerCase() &&
+        code.purpose === purpose &&
+        !code.consumedAt
+      ) {
+        code.consumedAt = consumedAt;
+        invalidated = true;
+      }
+    }
+
+    if (invalidated) {
+      this.persistRuntimeState();
     }
   }
 
@@ -169,10 +361,12 @@ export class InMemoryAppStore implements AppStore {
 
     if (existingIndex >= 0) {
       this.attempts[existingIndex] = savedAttempt;
+      this.persistRuntimeState();
       return savedAttempt;
     }
 
     this.attempts.push(savedAttempt);
+    this.persistRuntimeState();
     return savedAttempt;
   }
 
@@ -228,10 +422,12 @@ export class InMemoryAppStore implements AppStore {
 
     if (existingIndex >= 0) {
       this.vocabularyEntries[existingIndex] = savedEntry;
+      this.persistRuntimeState();
       return savedEntry;
     }
 
     this.vocabularyEntries.push(savedEntry);
+    this.persistRuntimeState();
     return savedEntry;
   }
 
@@ -265,6 +461,7 @@ export class InMemoryAppStore implements AppStore {
       ...remaining,
       ...nextContexts,
     );
+    this.persistRuntimeState();
   }
 
   /**
@@ -286,6 +483,7 @@ export class InMemoryAppStore implements AppStore {
    */
   saveLexiconEntries(entries: LexiconEntryRecord[]): void {
     this.lexiconEntries.splice(0, this.lexiconEntries.length, ...entries);
+    this.persistRuntimeState();
   }
 
   /**
@@ -314,10 +512,12 @@ export class InMemoryAppStore implements AppStore {
 
     if (existingIndex >= 0) {
       this.crawlJobs[existingIndex] = savedJob;
+      this.persistRuntimeState();
       return savedJob;
     }
 
     this.crawlJobs.push(savedJob);
+    this.persistRuntimeState();
     return savedJob;
   }
 }

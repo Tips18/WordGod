@@ -1,9 +1,11 @@
 import { Prisma } from '@prisma/client';
+import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppStore } from './app-store';
 import {
   AuthSessionRecord,
   CrawlJobRecord,
+  EmailVerificationCodeRecord,
   LexiconEntryRecord,
   PassageRecord,
   ReadingAttemptRecord,
@@ -11,6 +13,13 @@ import {
   VocabularyContextRecord,
   VocabularyEntryRecord,
 } from './store.types';
+
+const APPROVED_READING_SOURCE_DOMAINS = [
+  'wordcram.com.cn',
+  'jixun.iqihang.com',
+  'kaoyan.eol.cn',
+  'zhenti.burningvocabulary.cn',
+];
 
 /**
  * `toIsoString` 将数据库 Date 转为 DTO 使用的 ISO 字符串。
@@ -65,6 +74,33 @@ function toSessionRecord(session: {
 }
 
 /**
+ * `toEmailVerificationCodeRecord` 将 Prisma 验证码实体转换为存储实体。
+ */
+function toEmailVerificationCodeRecord(code: {
+  id: string;
+  email: string;
+  purpose: string;
+  codeHash: string;
+  expiresAt: Date;
+  consumedAt: Date | null;
+  attemptCount: number;
+  lastSentAt: Date;
+  createdAt: Date;
+}): EmailVerificationCodeRecord {
+  return {
+    id: code.id,
+    email: code.email,
+    purpose: code.purpose as EmailVerificationCodeRecord['purpose'],
+    codeHash: code.codeHash,
+    expiresAt: toIsoString(code.expiresAt),
+    consumedAt: code.consumedAt ? toIsoString(code.consumedAt) : null,
+    attemptCount: code.attemptCount,
+    lastSentAt: toIsoString(code.lastSentAt),
+    createdAt: toIsoString(code.createdAt),
+  };
+}
+
+/**
  * `toPassageRecord` 将 Prisma 段落实体转换为阅读服务可用结构。
  */
 function toPassageRecord(passage: {
@@ -74,6 +110,8 @@ function toPassageRecord(passage: {
   paper: string;
   questionType: string;
   passageIndex: number;
+  textIndex: number;
+  paragraphIndex: number;
   title: string;
   sourceUrl: string;
   sourceDomain: string;
@@ -89,6 +127,8 @@ function toPassageRecord(passage: {
     paper: passage.paper,
     questionType: passage.questionType as PassageRecord['questionType'],
     passageIndex: passage.passageIndex,
+    textIndex: passage.textIndex,
+    paragraphIndex: passage.paragraphIndex,
     title: passage.title,
     sourceUrl: passage.sourceUrl,
     sourceDomain: passage.sourceDomain,
@@ -345,11 +385,128 @@ export class PrismaAppStore implements AppStore {
   }
 
   /**
+   * `findLatestEmailCode` 返回指定邮箱和用途的最新验证码记录。
+   */
+  async findLatestEmailCode(
+    email: string,
+    purpose: EmailVerificationCodeRecord['purpose'],
+  ): Promise<EmailVerificationCodeRecord | undefined> {
+    const [code] = await this.prisma.$queryRaw<
+      Array<{
+        id: string;
+        email: string;
+        purpose: string;
+        codeHash: string;
+        expiresAt: Date;
+        consumedAt: Date | null;
+        attemptCount: number;
+        lastSentAt: Date;
+        createdAt: Date;
+      }>
+    >`
+      SELECT *
+      FROM "EmailVerificationCode"
+      WHERE lower("email") = lower(${email.trim()}) AND "purpose" = ${purpose}
+      ORDER BY "createdAt" DESC
+      LIMIT 1
+    `;
+
+    return code ? toEmailVerificationCodeRecord(code) : undefined;
+  }
+
+  /**
+   * `saveEmailCode` 写入或更新邮箱验证码记录。
+   */
+  async saveEmailCode(
+    code: Omit<EmailVerificationCodeRecord, 'id'> & { id?: string },
+  ): Promise<EmailVerificationCodeRecord> {
+    const consumedAt = code.consumedAt ? new Date(code.consumedAt) : null;
+    const existingCode = code.id
+      ? await this.prisma.$queryRaw<Array<{ id: string }>>`
+          SELECT "id" FROM "EmailVerificationCode" WHERE "id" = ${code.id}
+        `
+      : [];
+    const [savedCode] =
+      code.id && existingCode.length > 0
+        ? await this.prisma.$queryRaw<
+            Array<{
+              id: string;
+              email: string;
+              purpose: string;
+              codeHash: string;
+              expiresAt: Date;
+              consumedAt: Date | null;
+              attemptCount: number;
+              lastSentAt: Date;
+              createdAt: Date;
+            }>
+          >`
+            UPDATE "EmailVerificationCode"
+            SET
+              "codeHash" = ${code.codeHash},
+              "expiresAt" = ${new Date(code.expiresAt)},
+              "consumedAt" = ${consumedAt},
+              "attemptCount" = ${code.attemptCount},
+              "lastSentAt" = ${new Date(code.lastSentAt)}
+            WHERE "id" = ${code.id}
+            RETURNING *
+          `
+        : await this.prisma.$queryRaw<
+            Array<{
+              id: string;
+              email: string;
+              purpose: string;
+              codeHash: string;
+              expiresAt: Date;
+              consumedAt: Date | null;
+              attemptCount: number;
+              lastSentAt: Date;
+              createdAt: Date;
+            }>
+          >`
+            INSERT INTO "EmailVerificationCode"
+              ("id", "email", "purpose", "codeHash", "expiresAt", "consumedAt", "attemptCount", "lastSentAt", "createdAt")
+            VALUES
+              (${code.id ?? randomUUID()}, ${code.email}, ${code.purpose}, ${code.codeHash}, ${new Date(code.expiresAt)}, ${consumedAt}, ${code.attemptCount}, ${new Date(code.lastSentAt)}, ${new Date(code.createdAt)})
+            RETURNING *
+          `;
+
+    return toEmailVerificationCodeRecord(savedCode);
+  }
+
+  /**
+   * `invalidateEmailCodes` 将同邮箱同用途的未消费验证码标记为已作废。
+   */
+  async invalidateEmailCodes(
+    email: string,
+    purpose: EmailVerificationCodeRecord['purpose'],
+    consumedAt: string,
+  ): Promise<void> {
+    await this.prisma.$executeRaw`
+      UPDATE "EmailVerificationCode"
+      SET "consumedAt" = ${new Date(consumedAt)}
+      WHERE lower("email") = lower(${email.trim()})
+        AND "purpose" = ${purpose}
+        AND "consumedAt" IS NULL
+    `;
+  }
+
+  /**
    * `listPassages` 返回全部段落。
    */
   async listPassages(): Promise<PassageRecord[]> {
     const passages = await this.prisma.passage.findMany({
-      orderBy: [{ year: 'desc' }, { paper: 'asc' }, { passageIndex: 'asc' }],
+      where: {
+        examType: 'kaoyan',
+        questionType: 'reading',
+        sourceDomain: { in: APPROVED_READING_SOURCE_DOMAINS },
+      },
+      orderBy: [
+        { year: 'desc' },
+        { paper: 'asc' },
+        { textIndex: 'asc' },
+        { paragraphIndex: 'asc' },
+      ],
     });
 
     return passages.map(toPassageRecord);

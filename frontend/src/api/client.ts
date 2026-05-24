@@ -1,9 +1,13 @@
 import type {
   AuthResponse,
   CompleteReadingAttemptResponse,
+  EmailCodeLoginRequest,
   LoginRequest,
   ReadingPassageResponse,
   RegisterRequest,
+  ResetPasswordRequest,
+  SendEmailCodeRequest,
+  SendEmailCodeResponse,
   SyncReadingAttemptRequest,
   VocabularyDetailResponse,
   VocabularyListResponse,
@@ -92,6 +96,36 @@ export function login(payload: LoginRequest): Promise<AuthResponse> {
  */
 export function register(payload: RegisterRequest): Promise<AuthResponse> {
   return requestJson<AuthResponse>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * `sendEmailCode` 请求后端向指定邮箱发送一次性验证码。
+ */
+export function sendEmailCode(payload: SendEmailCodeRequest): Promise<SendEmailCodeResponse> {
+  return requestJson<SendEmailCodeResponse>('/auth/email-codes', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * `loginWithEmailCode` 使用邮箱验证码完成登录。
+ */
+export function loginWithEmailCode(payload: EmailCodeLoginRequest): Promise<AuthResponse> {
+  return requestJson<AuthResponse>('/auth/login/email-code', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * `resetPassword` 使用邮箱验证码重置密码并建立登录会话。
+ */
+export function resetPassword(payload: ResetPasswordRequest): Promise<AuthResponse> {
+  return requestJson<AuthResponse>('/auth/password/reset', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
