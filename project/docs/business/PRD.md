@@ -4,6 +4,12 @@
 
 我不是词神是一款面向已经完成阶段性背词学习的考研英语备考用户的工具型产品。产品核心不是教授新词，而是在真题语境中检验用户是否真正认识已经背过的词，并把识别不稳定的单词沉淀为高价值复习列表。
 
+## 发布结构
+
+- GitHub 仓库根目录只保留 `wordgod.apk` 和 `project/`，让 Android 安装包在一级位置保持醒目。
+- 所有源码、文档、Android 工程、题库和词库资源统一归入 `project/`；文档中未特别说明的开发路径均以 `project/` 为项目根目录。
+- Web 静态下载文件位于 `project/frontend/public/downloads/wordgod.apk`，并应与根目录 `wordgod.apk` 来自同一 release APK。
+
 ## V1 目标
 
 - 用户可以进入首页并阅读一段来自考研英语一/二文章题库的真题自然段。
@@ -68,7 +74,7 @@
 
 - 首页能稳定展示可阅读段落。
 - 本地开发启动应保证 `corepack pnpm dev:backend` 能生成并运行 Nest 入口 `backend/dist/main.js`，避免后端不可用导致首页无法加载段落。
-- 本地开发前端应从仓库根目录 `.env` 读取 `VITE_API_BASE_URL`，当后端运行在 `3001` 等非 3000 端口时不应因回退到 `localhost:3000` 显示 `Failed to fetch`。
+- 本地开发前端应从项目根目录 `.env` 读取 `VITE_API_BASE_URL`，当后端运行在 `3001` 等非 3000 端口时不应因回退到 `localhost:3000` 显示 `Failed to fetch`。
 - 本地开发时，首页在 Vite 自动切换到 `localhost`、`127.0.0.1` 或 `::1` 的备用端口后仍应正常请求阅读接口，不应因 CORS 预检失败显示 `Failed to fetch`。
 - 首页正文应展示完整英文段落，而不是只展示少量可点击 token。
 - 本地未配置数据库存储模式时，首页应使用 `真题题库/wordcram-kaoyan/articles/` 与 `真题题库/kaoyan-english-ii/articles/` 抽取出的自然段题库，不应退化为只有两篇兜底样例，也不应因 PostgreSQL 不可用而返回 500。
@@ -118,6 +124,6 @@
 - APK 内置当前考研英语一/二 `Text 1-4` 的 1021 条阅读自然段、tokens、句子、来源信息和瘦身词典；不把完整 `词库/ecdict.md` 打入 APK。
 - 移动端界面需要适配安全区、窄屏标题栏、触控友好的单词按钮、本篇已选列表、Live Note 弹窗和生词本详情布局；手机端标题、正文单词、已选列表和详情弹窗字号应整体小于桌面端，以匹配 360px 到 390px 宽屏幕。
 - Android Manifest 不申请 `INTERNET` 权限，避免 APK 产品边界从本地离线模式滑向联网客户端。
-- GitHub 仓库根目录保留 `wordgod.apk` 作为一级安装包下载入口；Web 端下载入口继续使用前端静态资源 `frontend/public/downloads/wordgod.apk` 承载当前 release APK，两个文件应从同一 release APK 同步，下载入口不改变 APK 本身的本地离线运行边界。
+- GitHub 仓库根目录保留 `wordgod.apk` 作为一级安装包下载入口，并只额外保留 `project/` 文件夹；Web 端下载入口继续使用前端静态资源 `project/frontend/public/downloads/wordgod.apk` 承载当前 release APK，两个文件应从同一 release APK 同步，下载入口不改变 APK 本身的本地离线运行边界。
 - 正式内容验收要求离线资源包含真实中文句子译文；缺失真实译文缓存时，严格资源构建必须失败。仅允许开发/打包验证使用显式 placeholder 构建，并需在交付说明中标明该 APK 不是内容完整状态。
 - Android 交付产物为 `app-debug.apk` 和使用本地 keystore 签名的 `app-release.apk`；keystore 与签名密码只保存在 git 忽略路径。

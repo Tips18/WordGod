@@ -2,10 +2,11 @@
 
 ## 总体结构
 
-项目采用前后端分离的 `pnpm workspace` 单仓结构：
+GitHub 仓库根目录只保留 `wordgod.apk` 和 `project/`：`wordgod.apk` 作为一级 Android 安装包下载入口，`project/` 承载全部源码、文档、Android 工程、题库和词库资源。
+
+`project/` 内部采用前后端分离的 `pnpm workspace` 单仓结构：
 
 - `frontend/`：阅读检测、生词本和全局认证弹窗 UI。
-- `wordgod.apk`：仓库根目录一级 Android 安装包，供 GitHub 仓库首页直接下载。
 - `backend/`：REST API、认证、阅读结算、生词本聚合、内容管线和可切换应用存储。
 - `packages/contracts/`：共享 DTO 和领域类型。
 - `真题题库/wordcram-kaoyan/articles/`：WordCram 公开在线测试页转换出的考研英语一文章题库，作为阅读题库输入来源；每篇 Text 下按空行分隔的英文自然段是 `Passage` 最小单位。
@@ -49,9 +50,9 @@
 - `backend/src/reading/passage-translator.ts` 负责 Live Note 的运行时句子翻译：配置 `DEEPSEEK_API_KEY` 时调用 DeepSeek Chat Completions API；可通过 `DEEPSEEK_TRANSLATION_MODEL` 指定模型，默认值为 `deepseek-v4-flash`；成功结果按 `passage.id + passage.content` 做进程内缓存；缺少配置或请求失败时返回“翻译暂不可用，请稍后重试。”，不阻断阅读流程。
 - `backend/src/reading/ecdict-dictionary.service.ts` 负责优先查询已入库 `LexiconEntry`，并在无匹配时懒加载 `词库/ecdict.md` 或 `ECDICT_MARKDOWN_PATH` 指定文件；阅读接口和完成结算都会使用补全后的 token，词典不可用时保留原 token 数据。
 - 前端通过 `packages/contracts/` 共享 DTO 与领域类型，避免重复定义接口结构。
-- 后端开发启动会先构建 `packages/contracts`，`backend/tsconfig.json` 再从 `packages/contracts/dist` 解析共享包；contracts 和后端的增量缓存都写入各自 `dist/`，确保清理输出目录后 Nest 仍能重新生成 `backend/dist/main.js`。
+- 后端开发启动会先构建 `packages/contracts`，`backend/tsconfig.json` 再从 `packages/contracts/dist` 解析共享包；contracts 和后端的增量缓存都写入各自 `dist/`，确保清理输出目录后 Nest 仍能重新生成 `backend/dist/main.js`。独立运行后端 ESLint 前也需要先构建 `@word-god/contracts`，避免 type-aware lint 无法解析共享 DTO。
 - `frontend/src/App.tsx` 在应用壳层加载时调用 `/auth/me` 恢复登录态；后端会在 access Cookie 失效但 refresh Cookie 有效时补发 access Cookie。全局认证弹窗和阅读拦截弹窗完成认证后会把返回用户传回应用壳层，导航在游客状态显示“登录 / 注册”弹窗按钮，在已登录状态立即显示账号邮箱和“退出登录”按钮。
-- `frontend/src/App.tsx` 在 Web runtime 导航中渲染“下载手机版 APK”链接，固定指向 `/downloads/wordgod.apk` 并使用 `download="wordgod.apk"`；`frontend/public/downloads/wordgod.apk` 由当前 release APK 同步而来，mobile runtime 不渲染该链接。仓库根目录 `wordgod.apk` 作为 GitHub 首页一级安装包入口，与前端静态下载文件从同一 release APK 同步。
+- `frontend/src/App.tsx` 在 Web runtime 导航中渲染“下载手机版 APK”链接，固定指向 `/downloads/wordgod.apk` 并使用 `download="wordgod.apk"`；`project/frontend/public/downloads/wordgod.apk` 由当前 release APK 同步而来，mobile runtime 不渲染该链接。仓库根目录 `wordgod.apk` 作为 GitHub 首页一级安装包入口，与前端静态下载文件从同一 release APK 同步。
 - `frontend/src/App.tsx` 向受保护页面传递稳定的全局认证弹窗打开回调；生词本未登录错误触发弹窗后，关闭弹窗只清理壳层弹窗状态，不会因为 `VocabularyPage` 仍处于同一次 401 错误态而重新触发打开。
 - `frontend/src/components/auth-form-card.tsx` 在登录模式显示默认勾选的“30天内记住登录”复选框，全局认证弹窗和阅读拦截弹窗都会把选择写入 `POST /auth/login` 请求体；注册模式不发送该字段。
 - `frontend/src/pages/reading-page.tsx` 的阅读拦截弹窗维护在阅读页本地状态中，右上角关闭按钮只将该弹窗状态置为关闭，保留当前段落、本地标记和继续阅读流程。
@@ -59,7 +60,7 @@
 - 阅读页宽屏旁批轨由 `frontend/src/App.tsx` 的阅读路由宽容器和 `frontend/src/pages/reading-page.tsx` 的三列布局共同实现；左侧本篇已选列表仅消费当前阅读状态并通过现有本地标记集合完成删除，不改变共享 DTO、后端 API、结算或生词本数据流。
 - 后端代码质量基线要求 `src/` 与 `test/` 范围内全量 ESLint 无 error 和 warning；格式化统一由 Prettier 处理，e2e 测试的 supertest server 入口需显式类型化。
 - 后端默认允许 `localhost`、`127.0.0.1`、`::1` 本机开发源跨源携带 Cookie 访问，不限制 Vite 实际端口；非本机前端源通过 `CORS_ALLOWED_ORIGINS` 扩展。
-- `frontend/vite.config.ts` 通过 `envDir` 指向仓库根目录，使前端 dev server 和构建都读取同一份 `.env`；本地后端运行在 `PORT=3001` 时，前端会使用 `VITE_API_BASE_URL=http://localhost:3001`，不会错误回退到 `localhost:3000`。
+- `frontend/vite.config.ts` 通过 `envDir` 指向项目根目录，使前端 dev server 和构建都读取同一份 `.env`；本地后端运行在 `PORT=3001` 时，前端会使用 `VITE_API_BASE_URL=http://localhost:3001`，不会错误回退到 `localhost:3000`。
 - 阅读页初始接口失败时优先渲染错误态，避免无数据且已失败的查询被误判为仍在加载。
 - `真题题库/wordcram-kaoyan/articles/` 当前覆盖 1998-2026 考研英语一公开文章题库；2022 文件缺失 Text 1 时抽取流程继续处理 Text 2-4，并把缺失情况写入警告缓存。
 - `真题题库/kaoyan-english-ii/articles/` 当前覆盖 2010、2013-2026 考研英语二公开文章资料，每年文件包含 `Section I Use of English` 与 `Text 1-4`；`index.json` 记录来源类型、来源 URL、PDF viewer URL、段落数、词数和 2011/2012 缺源失败项，运行时只抽取 `Text 1-4`。

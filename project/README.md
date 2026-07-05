@@ -7,14 +7,18 @@
 Android 手机用户可直接下载离线版安装包：[下载 WordGod APK](https://github.com/Tips18/WordGod/raw/main/wordgod.apk)
 
 - 仓库一级位置：`wordgod.apk`
-- Web 静态资源位置：`frontend/public/downloads/wordgod.apk`
+- 项目源码位置：`project/`
+- Web 静态资源位置：`project/frontend/public/downloads/wordgod.apk`（项目内相对路径：`frontend/public/downloads/wordgod.apk`）
 - 当前文件大小：约 5.6 MB
 - SHA256：`99C4BE8CAC2A863C6C3DEB215A0406C9F09F963B87BD2A2B280CA10625539F28`
 - 说明：APK 为本地离线模式，不依赖 Nest 后端，也不申请 Android `INTERNET` 权限。
 
 ## 仓库结构
 
+GitHub 仓库根目录只保留 `wordgod.apk` 和 `project/`。除 `wordgod.apk` 外，以下路径均为 `project/` 内的相对路径。
+
 - `wordgod.apk`：仓库根目录一级 Android 安装包，供 GitHub 仓库首页直接下载。
+- `project/`：项目源码、文档、Android 工程、题库和词库资源的统一目录；开发命令均在该目录内执行。
 - `frontend/`：React + Vite 前端应用，承载阅读检测、生词本和全局登录注册弹窗。
 - `frontend/public/downloads/wordgod.apk`：Web 页面顶部“下载手机版 APK”按钮使用的静态 APK 文件。
 - `backend/`：NestJS API 服务，提供认证、阅读结算、生词本聚合、Prisma/PostgreSQL 存储和内部内容导入命令。
@@ -28,6 +32,7 @@ Android 手机用户可直接下载离线版安装包：[下载 WordGod APK](htt
 
 ## 开发约束
 
+- 从仓库根目录进入开发时，先切换到 `project/`，再按下列文档和命令执行。
 - 每次编码前先通读 `docs/business/PRD.md`、`docs/technical/ARCHITECTURE.md`、`docs/technical/DATABASE.md`。
 - 每次修改代码后同步更新 README、产品文档和技术文档。
 - 每个函数必须包含总结式注释，避免无语义的空洞注释。
@@ -42,7 +47,13 @@ V1 前端采用“纸本文献感”的阅读优先设计。界面围绕 `#E6DCC
 
 ## 启动方式
 
-当前仓库使用 `pnpm workspace` 管理。若本机未安装 `pnpm`，先执行：
+项目代码位于仓库根目录的 `project/` 中。克隆仓库后先进入项目目录：
+
+```powershell
+Set-Location .\project
+```
+
+项目使用 `pnpm workspace` 管理。若本机未安装 `pnpm`，先执行：
 
 ```powershell
 corepack prepare pnpm@10.11.0 --activate
@@ -62,11 +73,11 @@ corepack pnpm dev:backend
 corepack pnpm dev:frontend
 ```
 
-Vite 前端默认运行在 `http://localhost:5173`，后端按根目录 `.env` 中的 `PORT` 运行；当前本地配置为 `3001`。`http://localhost:3000` 只有在另有服务监听时才可访问，默认开发入口不是 3000。
+Vite 前端默认运行在 `http://localhost:5173`，后端按项目根目录 `.env` 中的 `PORT` 运行；当前本地配置为 `3001`。`http://localhost:3000` 只有在另有服务监听时才可访问，默认开发入口不是 3000。
 
 `dev:backend` 会先构建 `packages/contracts`，后端 TypeScript 再从 `packages/contracts/dist` 解析共享类型和常量，避免把共享包源码编进 `backend/dist` 导致 Nest 找不到 `dist/main.js`。contracts 和后端的增量构建缓存都写入各自 `dist/`，清理输出目录后会完整重建。
 
-后端会读取仓库根目录 `.env`。未设置 `WORD_GOD_STORE` 或设置为 `memory` 时使用内存题库，启动时优先读取 `content-cache/wordcram-article-passages.json` 中已抽取的考研英语一/二自然段；缓存不存在或仍只有英语一旧数据时，会从 `真题题库/wordcram-kaoyan/articles/` 与 `真题题库/kaoyan-english-ii/articles/` 同步抽取 1021 条 `Text 1-4` 自然段，避免本地题库退化为少量兜底样例。memory 模式会把用户、刷新会话、邮箱验证码、生词本和阅读临时状态写入 `.dev-data/memory-store.json`，因此后端重启后本地注册账号仍可登录；可用 `WORD_GOD_MEMORY_STORE_PATH` 覆盖该路径。只有显式设置 `WORD_GOD_STORE=prisma` 时才使用 PostgreSQL，此时需先准备 `DATABASE_URL` 并执行迁移。首页正文以 `passage.content` 渲染完整英文自然段，token 只负责单词点击标记。
+后端会读取项目根目录 `.env`。未设置 `WORD_GOD_STORE` 或设置为 `memory` 时使用内存题库，启动时优先读取 `content-cache/wordcram-article-passages.json` 中已抽取的考研英语一/二自然段；缓存不存在或仍只有英语一旧数据时，会从 `真题题库/wordcram-kaoyan/articles/` 与 `真题题库/kaoyan-english-ii/articles/` 同步抽取 1021 条 `Text 1-4` 自然段，避免本地题库退化为少量兜底样例。memory 模式会把用户、刷新会话、邮箱验证码、生词本和阅读临时状态写入 `.dev-data/memory-store.json`，因此后端重启后本地注册账号仍可登录；可用 `WORD_GOD_MEMORY_STORE_PATH` 覆盖该路径。只有显式设置 `WORD_GOD_STORE=prisma` 时才使用 PostgreSQL，此时需先准备 `DATABASE_URL` 并执行迁移。首页正文以 `passage.content` 渲染完整英文自然段，token 只负责单词点击标记。
 
 邮箱密码认证会在注册和登录时统一将邮箱去除首尾空格并转为小写，并拒绝空邮箱、格式不合法邮箱和空密码，避免接口缺字段导致 500 或写入空账号。Prisma/PostgreSQL 模式下邮箱查找使用大小写不敏感匹配，已注册账号即使登录输入的邮箱大小写与注册时不同，也应能直接登录。登录表单默认勾选“30天内记住登录”，会签发 30 天刷新会话 Cookie；取消勾选时签发 24 小时刷新会话 Cookie。注册后自动登录仍沿用 30 天刷新会话。
 
@@ -81,13 +92,13 @@ $env:WORD_GOD_MEMORY_STORE_PATH="D:\word-god-memory-store.json"
 $env:WORD_GOD_STORE="memory"; corepack pnpm dev:backend
 ```
 
-前端 Vite 配置会从仓库根目录 `.env` 读取 `VITE_API_BASE_URL`，未设置时才回退到 `http://localhost:3000`。当前本地 `.env` 可将前端 API 指向 `http://localhost:3001`；后端默认允许 `localhost`、`127.0.0.1`、`::1` 本机开发源以任意端口携带登录 Cookie 访问，因此 Vite 在 `5173` 被占用后自动切到 `5174` 等端口时首页仍可请求 API。若使用非本机前端地址，设置 `CORS_ALLOWED_ORIGINS`，多个来源用英文逗号分隔。首页若无法连接 API，会显示加载错误而不是一直停留在“正在载入真题段落...”。
+前端 Vite 配置会从项目根目录 `.env` 读取 `VITE_API_BASE_URL`，未设置时才回退到 `http://localhost:3000`。当前本地 `.env` 可将前端 API 指向 `http://localhost:3001`；后端默认允许 `localhost`、`127.0.0.1`、`::1` 本机开发源以任意端口携带登录 Cookie 访问，因此 Vite 在 `5173` 被占用后自动切到 `5174` 等端口时首页仍可请求 API。若使用非本机前端地址，设置 `CORS_ALLOWED_ORIGINS`，多个来源用英文逗号分隔。首页若无法连接 API，会显示加载错误而不是一直停留在“正在载入真题段落...”。
 
 ## Android 离线 APK
 
 Android APK 使用 Capacitor 封装现有 React/Vite 前端。App 名称为 `WordGod`，包名为 `com.wordgod.app`。APK 构建时设置 `VITE_WORD_GOD_RUNTIME=mobile`，前端会改走本地离线客户端：不请求 Nest 后端，不展示登录/注册/退出入口，也不在标题栏展示“本机离线”状态 chip，使用本机默认用户保存阅读临时状态、生词本、标记次数和最近三条上下文。移动端阅读页会隐藏桌面 Live Note 旁批，改用贴近被点词的可关闭单词详情弹窗展示词性、释义、原句和译文，并压缩窄屏字号。Android Manifest 已移除 `INTERNET` 权限。
 
-GitHub 仓库首页一级安装包为根目录 `wordgod.apk`；Web 端标题栏的“下载手机版 APK”按钮指向 `/downloads/wordgod.apk`，对应仓库文件为 `frontend/public/downloads/wordgod.apk`。两个 APK 文件当前都由 `android/app/build/outputs/apk/release/app-release.apk` 同步而来，应保持内容一致。Web 下载入口只在 Web runtime 显示，APK 的 mobile runtime 内部不展示自下载入口。
+GitHub 仓库首页一级安装包为根目录 `wordgod.apk`；Web 端标题栏的“下载手机版 APK”按钮指向 `/downloads/wordgod.apk`，对应仓库文件为 `project/frontend/public/downloads/wordgod.apk`（项目内相对路径：`frontend/public/downloads/wordgod.apk`）。两个 APK 文件当前都由 `project/android/app/build/outputs/apk/release/app-release.apk` 同步而来，应保持内容一致。Web 下载入口只在 Web runtime 显示，APK 的 mobile runtime 内部不展示自下载入口。
 
 构建前需要 JDK 21、Android SDK Platform 36、Build Tools 36 和 Platform Tools。当前 Windows 中文路径构建依赖 `android.overridePathCheck=true`；`android/build.gradle` 同时配置了 Aliyun Maven 镜像作为 Google Maven/Maven Central 访问不稳定时的兜底。
 
@@ -130,11 +141,12 @@ android/app/build/outputs/apk/release/app-release.apk
 
 ```powershell
 corepack pnpm test
+corepack pnpm --filter @word-god/contracts build
 corepack pnpm --filter backend exec eslint "{src,apps,libs,test}/**/*.ts"
 corepack pnpm --filter backend test:e2e
 ```
 
-后端全量 ESLint 应保持 0 error、0 warning；格式化问题通过 Prettier 统一处理，e2e 测试中的 HTTP server 访问需要保留显式类型，避免 `any` 重新进入 lint 输出。
+后端全量 ESLint 依赖 `packages/contracts/dist` 中的共享类型，独立运行前需要先构建 contracts；ESLint 应保持 0 error、0 warning。格式化问题通过 Prettier 统一处理，e2e 测试中的 HTTP server 访问需要保留显式类型，避免 `any` 重新进入 lint 输出。
 
 浏览器端 Playwright 用例已写入仓库，首次运行前需要先安装 Chromium：
 

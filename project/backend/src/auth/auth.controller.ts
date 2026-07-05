@@ -134,8 +134,7 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<{ success: true }> {
     const refreshToken = request.cookies?.word_god_refresh_token as
-      | string
-      | undefined;
+      string | undefined;
 
     if (refreshToken) {
       await this.authService.logout(refreshToken);

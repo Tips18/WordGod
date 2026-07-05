@@ -282,8 +282,7 @@ export class AuthService {
   ): Promise<ResolvedSession | null> {
     const accessToken = request.cookies?.[ACCESS_COOKIE] as string | undefined;
     const refreshToken = request.cookies?.[REFRESH_COOKIE] as
-      | string
-      | undefined;
+      string | undefined;
 
     if (accessToken) {
       try {

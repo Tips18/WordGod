@@ -98,6 +98,7 @@
 
 ## 当前仓库状态
 
+- GitHub 仓库根目录只保留 `wordgod.apk` 和 `project/`，所有源码、文档、Android 工程、题库和词库资源位于 `project/`；该目录调整不新增数据库表、字段、迁移、唯一约束或本地存储键。
 - Prisma schema 位于 `backend/prisma/schema.prisma`，数据源固定为 PostgreSQL。
 - `backend/prisma/migrations/202604280001_add_passage_unique_key/` 新增了段落自然键唯一索引，导入脚本可按稳定段落 id 和自然键幂等更新题库内容。
 - `backend/prisma/migrations/202605150001_add_passage_paragraph_key/` 新增 `textIndex` 与 `paragraphIndex`，并将 `Passage` 唯一索引切换为自然段级唯一键；迁移会把旧数据回填为 `textIndex = passageIndex`、`paragraphIndex = 1`。
@@ -108,7 +109,7 @@
 - 考研英语二标准化 Markdown 当前保存在 `真题题库/kaoyan-english-ii/articles/`，已按 `Text 1-4` 自然段接入默认导入白名单；`Passage` schema 不变，仍沿用 `examType + year + paper + questionType + textIndex + paragraphIndex` 自然键，并保留每段来源 URL。
 - 前端“纸本文献感”视觉重构不新增字段、不新增表，也不改变现有唯一约束和结算逻辑；阅读页宽屏正文居中、左侧本篇已选列表、右侧固定 Live Note 旁批轨、普通顶部标题栏和全局认证弹窗都只调整前端布局与本地状态。手机端 Live Note 弹窗位置和开关状态只保存在 React 组件状态中，不写入 `ReadingAttempt`、`VocabularyEntry`、APK `localStorage` 或任何后端存储。生词本未登录弹窗的关闭行为只改变前端弹窗状态，不新增持久化字段。列表 `×` 删除按 lemma 更新当前段落临时标记集合，登录后标题栏显示的账号邮箱继续来自现有 `User.email`，页面仍消费当前 `Passage`、`LexiconEntry`、`ReadingAttempt`、`VocabularyEntry` 和 `VocabularyContext` 数据。
 - 顶部标题栏取消吸顶、当前页面导航深色背景和白色文字状态、标题下方使用说明文案调整以及阅读段落卡片头部删除重复操作说明只改变前端渲染文本与布局类，不新增数据库表、字段、迁移、唯一约束或持久化状态。
-- Web 顶部“下载手机版 APK”入口只渲染指向 `/downloads/wordgod.apk` 的静态链接，并由 `frontend/public/downloads/wordgod.apk` 承载 APK 文件；仓库根目录 `wordgod.apk` 仅作为 GitHub 首页一级下载入口，与 Web 静态 APK 同步自同一 release APK。两处下载文件都不写入 `User`、`ReadingAttempt`、`VocabularyEntry`、APK `localStorage` 或后端数据库，也不新增数据库表、字段、迁移、唯一约束或本地存储键。
+- Web 顶部“下载手机版 APK”入口只渲染指向 `/downloads/wordgod.apk` 的静态链接，并由 `project/frontend/public/downloads/wordgod.apk` 承载 APK 文件；仓库根目录 `wordgod.apk` 仅作为 GitHub 首页一级下载入口，与 Web 静态 APK 同步自同一 release APK。两处下载文件都不写入 `User`、`ReadingAttempt`、`VocabularyEntry`、APK `localStorage` 或后端数据库，也不新增数据库表、字段、迁移、唯一约束或本地存储键。
 - 阅读页“登录后继续”弹窗关闭按钮只改变前端本地弹窗状态，不写入 `ReadingAttempt`、不结算 `VocabularyEntry`，也不新增数据库表、字段、迁移或唯一约束。
 - 忘记密码验证码发送前的未注册邮箱检查只读取现有 `User.email`，未命中时不写入 `EmailVerificationCode`，不新增数据库表、字段、迁移或唯一约束。
 - 本机开发 CORS 兼容只调整 API 启动中间件，不新增数据库字段、表、迁移或持久化状态。
@@ -118,7 +119,7 @@
 - `content:create-translation-batch` 与 `content:import-translation-batch` 切换为 DeepSeek 本地 JSONL 队列和逐条调用后，仍只写入既有 `Passage` 与 `LexiconEntry` 表；缓存文件、输出文件和导入错误记录都属于 `content-cache/` 临时产物，不新增 Prisma schema、迁移或唯一约束。
 - 后端 ESLint 基线清理只涉及 TypeScript 格式与测试类型标注，不新增迁移，也不改变任何数据库 schema 或约束。
 - 后端启动构建配置只调整 TypeScript 输出目录、共享 contracts 解析和增量缓存位置，不新增迁移，也不改变任何数据库 schema、约束或持久化状态。
-- 前端 Vite 根目录 `.env` 加载修复只影响浏览器请求 API 的地址选择，不新增数据库表、字段、迁移、唯一约束或持久化状态。
+- 前端 Vite 项目根目录 `.env` 加载修复只影响浏览器请求 API 的地址选择，不新增数据库表、字段、迁移、唯一约束或持久化状态。
 
 # 2026-05-20 邮箱验证码数据库更新
 

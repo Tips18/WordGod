@@ -82,3 +82,5 @@
 - 将当前 Android release APK 同步到仓库根目录 `wordgod.apk`，作为 GitHub 仓库首页一级下载入口。
 - 保留 `frontend/public/downloads/wordgod.apk` 作为 Web 静态下载文件；根目录 APK 与 Web 静态 APK 应来自同一 release APK。
 - 该变更只调整仓库发布入口，不改变 APK 本地离线运行、Web 导航下载路径、认证隐藏规则或学习数据存储。
+- 重新整理 GitHub 仓库目录：根目录只保留 `wordgod.apk` 和 `project/`，所有源码、文档、Android 工程、题库和词库资源归入 `project/`。
+- 后续开发命令、文档相对路径和内部脚本均以 `project/` 为项目根目录；该调整不改变运行时逻辑、数据库 schema、APK 本地存储或 Web 下载路径。
