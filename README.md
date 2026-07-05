@@ -4,15 +4,17 @@
 
 ## 手机版下载
 
-Android 手机用户可直接下载离线版安装包：[下载 WordGod APK](https://github.com/Tips18/WordGod/raw/main/frontend/public/downloads/wordgod.apk)
+Android 手机用户可直接下载离线版安装包：[下载 WordGod APK](https://github.com/Tips18/WordGod/raw/main/wordgod.apk)
 
-- 仓库内位置：`frontend/public/downloads/wordgod.apk`
+- 仓库一级位置：`wordgod.apk`
+- Web 静态资源位置：`frontend/public/downloads/wordgod.apk`
 - 当前文件大小：约 5.6 MB
 - SHA256：`99C4BE8CAC2A863C6C3DEB215A0406C9F09F963B87BD2A2B280CA10625539F28`
 - 说明：APK 为本地离线模式，不依赖 Nest 后端，也不申请 Android `INTERNET` 权限。
 
 ## 仓库结构
 
+- `wordgod.apk`：仓库根目录一级 Android 安装包，供 GitHub 仓库首页直接下载。
 - `frontend/`：React + Vite 前端应用，承载阅读检测、生词本和全局登录注册弹窗。
 - `frontend/public/downloads/wordgod.apk`：Web 页面顶部“下载手机版 APK”按钮使用的静态 APK 文件。
 - `backend/`：NestJS API 服务，提供认证、阅读结算、生词本聚合、Prisma/PostgreSQL 存储和内部内容导入命令。
@@ -85,7 +87,7 @@ $env:WORD_GOD_STORE="memory"; corepack pnpm dev:backend
 
 Android APK 使用 Capacitor 封装现有 React/Vite 前端。App 名称为 `WordGod`，包名为 `com.wordgod.app`。APK 构建时设置 `VITE_WORD_GOD_RUNTIME=mobile`，前端会改走本地离线客户端：不请求 Nest 后端，不展示登录/注册/退出入口，也不在标题栏展示“本机离线”状态 chip，使用本机默认用户保存阅读临时状态、生词本、标记次数和最近三条上下文。移动端阅读页会隐藏桌面 Live Note 旁批，改用贴近被点词的可关闭单词详情弹窗展示词性、释义、原句和译文，并压缩窄屏字号。Android Manifest 已移除 `INTERNET` 权限。
 
-Web 端标题栏的“下载手机版 APK”按钮指向 `/downloads/wordgod.apk`，对应仓库文件为 `frontend/public/downloads/wordgod.apk`，当前使用 `android/app/build/outputs/apk/release/app-release.apk` 同步而来。该入口只在 Web runtime 显示，APK 的 mobile runtime 内部不展示自下载入口。
+GitHub 仓库首页一级安装包为根目录 `wordgod.apk`；Web 端标题栏的“下载手机版 APK”按钮指向 `/downloads/wordgod.apk`，对应仓库文件为 `frontend/public/downloads/wordgod.apk`。两个 APK 文件当前都由 `android/app/build/outputs/apk/release/app-release.apk` 同步而来，应保持内容一致。Web 下载入口只在 Web runtime 显示，APK 的 mobile runtime 内部不展示自下载入口。
 
 构建前需要 JDK 21、Android SDK Platform 36、Build Tools 36 和 Platform Tools。当前 Windows 中文路径构建依赖 `android.overridePathCheck=true`；`android/build.gradle` 同时配置了 Aliyun Maven 镜像作为 Google Maven/Maven Central 访问不稳定时的兜底。
 

@@ -108,7 +108,7 @@
 - 考研英语二标准化 Markdown 当前保存在 `真题题库/kaoyan-english-ii/articles/`，已按 `Text 1-4` 自然段接入默认导入白名单；`Passage` schema 不变，仍沿用 `examType + year + paper + questionType + textIndex + paragraphIndex` 自然键，并保留每段来源 URL。
 - 前端“纸本文献感”视觉重构不新增字段、不新增表，也不改变现有唯一约束和结算逻辑；阅读页宽屏正文居中、左侧本篇已选列表、右侧固定 Live Note 旁批轨、普通顶部标题栏和全局认证弹窗都只调整前端布局与本地状态。手机端 Live Note 弹窗位置和开关状态只保存在 React 组件状态中，不写入 `ReadingAttempt`、`VocabularyEntry`、APK `localStorage` 或任何后端存储。生词本未登录弹窗的关闭行为只改变前端弹窗状态，不新增持久化字段。列表 `×` 删除按 lemma 更新当前段落临时标记集合，登录后标题栏显示的账号邮箱继续来自现有 `User.email`，页面仍消费当前 `Passage`、`LexiconEntry`、`ReadingAttempt`、`VocabularyEntry` 和 `VocabularyContext` 数据。
 - 顶部标题栏取消吸顶、当前页面导航深色背景和白色文字状态、标题下方使用说明文案调整以及阅读段落卡片头部删除重复操作说明只改变前端渲染文本与布局类，不新增数据库表、字段、迁移、唯一约束或持久化状态。
-- Web 顶部“下载手机版 APK”入口只渲染指向 `/downloads/wordgod.apk` 的静态链接，并由 `frontend/public/downloads/wordgod.apk` 承载 APK 文件；该入口不写入 `User`、`ReadingAttempt`、`VocabularyEntry`、APK `localStorage` 或后端数据库，也不新增数据库表、字段、迁移、唯一约束或本地存储键。
+- Web 顶部“下载手机版 APK”入口只渲染指向 `/downloads/wordgod.apk` 的静态链接，并由 `frontend/public/downloads/wordgod.apk` 承载 APK 文件；仓库根目录 `wordgod.apk` 仅作为 GitHub 首页一级下载入口，与 Web 静态 APK 同步自同一 release APK。两处下载文件都不写入 `User`、`ReadingAttempt`、`VocabularyEntry`、APK `localStorage` 或后端数据库，也不新增数据库表、字段、迁移、唯一约束或本地存储键。
 - 阅读页“登录后继续”弹窗关闭按钮只改变前端本地弹窗状态，不写入 `ReadingAttempt`、不结算 `VocabularyEntry`，也不新增数据库表、字段、迁移或唯一约束。
 - 忘记密码验证码发送前的未注册邮箱检查只读取现有 `User.email`，未命中时不写入 `EmailVerificationCode`，不新增数据库表、字段、迁移或唯一约束。
 - 本机开发 CORS 兼容只调整 API 启动中间件，不新增数据库字段、表、迁移或持久化状态。

@@ -5,6 +5,7 @@
 项目采用前后端分离的 `pnpm workspace` 单仓结构：
 
 - `frontend/`：阅读检测、生词本和全局认证弹窗 UI。
+- `wordgod.apk`：仓库根目录一级 Android 安装包，供 GitHub 仓库首页直接下载。
 - `backend/`：REST API、认证、阅读结算、生词本聚合、内容管线和可切换应用存储。
 - `packages/contracts/`：共享 DTO 和领域类型。
 - `真题题库/wordcram-kaoyan/articles/`：WordCram 公开在线测试页转换出的考研英语一文章题库，作为阅读题库输入来源；每篇 Text 下按空行分隔的英文自然段是 `Passage` 最小单位。
@@ -50,7 +51,7 @@
 - 前端通过 `packages/contracts/` 共享 DTO 与领域类型，避免重复定义接口结构。
 - 后端开发启动会先构建 `packages/contracts`，`backend/tsconfig.json` 再从 `packages/contracts/dist` 解析共享包；contracts 和后端的增量缓存都写入各自 `dist/`，确保清理输出目录后 Nest 仍能重新生成 `backend/dist/main.js`。
 - `frontend/src/App.tsx` 在应用壳层加载时调用 `/auth/me` 恢复登录态；后端会在 access Cookie 失效但 refresh Cookie 有效时补发 access Cookie。全局认证弹窗和阅读拦截弹窗完成认证后会把返回用户传回应用壳层，导航在游客状态显示“登录 / 注册”弹窗按钮，在已登录状态立即显示账号邮箱和“退出登录”按钮。
-- `frontend/src/App.tsx` 在 Web runtime 导航中渲染“下载手机版 APK”链接，固定指向 `/downloads/wordgod.apk` 并使用 `download="wordgod.apk"`；`frontend/public/downloads/wordgod.apk` 由当前 release APK 同步而来，mobile runtime 不渲染该链接。
+- `frontend/src/App.tsx` 在 Web runtime 导航中渲染“下载手机版 APK”链接，固定指向 `/downloads/wordgod.apk` 并使用 `download="wordgod.apk"`；`frontend/public/downloads/wordgod.apk` 由当前 release APK 同步而来，mobile runtime 不渲染该链接。仓库根目录 `wordgod.apk` 作为 GitHub 首页一级安装包入口，与前端静态下载文件从同一 release APK 同步。
 - `frontend/src/App.tsx` 向受保护页面传递稳定的全局认证弹窗打开回调；生词本未登录错误触发弹窗后，关闭弹窗只清理壳层弹窗状态，不会因为 `VocabularyPage` 仍处于同一次 401 错误态而重新触发打开。
 - `frontend/src/components/auth-form-card.tsx` 在登录模式显示默认勾选的“30天内记住登录”复选框，全局认证弹窗和阅读拦截弹窗都会把选择写入 `POST /auth/login` 请求体；注册模式不发送该字段。
 - `frontend/src/pages/reading-page.tsx` 的阅读拦截弹窗维护在阅读页本地状态中，右上角关闭按钮只将该弹窗状态置为关闭，保留当前段落、本地标记和继续阅读流程。

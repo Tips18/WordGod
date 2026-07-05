@@ -118,6 +118,6 @@
 - APK 内置当前考研英语一/二 `Text 1-4` 的 1021 条阅读自然段、tokens、句子、来源信息和瘦身词典；不把完整 `词库/ecdict.md` 打入 APK。
 - 移动端界面需要适配安全区、窄屏标题栏、触控友好的单词按钮、本篇已选列表、Live Note 弹窗和生词本详情布局；手机端标题、正文单词、已选列表和详情弹窗字号应整体小于桌面端，以匹配 360px 到 390px 宽屏幕。
 - Android Manifest 不申请 `INTERNET` 权限，避免 APK 产品边界从本地离线模式滑向联网客户端。
-- Web 端下载入口使用前端静态资源 `frontend/public/downloads/wordgod.apk` 承载当前 release APK，下载入口不改变 APK 本身的本地离线运行边界。
+- GitHub 仓库根目录保留 `wordgod.apk` 作为一级安装包下载入口；Web 端下载入口继续使用前端静态资源 `frontend/public/downloads/wordgod.apk` 承载当前 release APK，两个文件应从同一 release APK 同步，下载入口不改变 APK 本身的本地离线运行边界。
 - 正式内容验收要求离线资源包含真实中文句子译文；缺失真实译文缓存时，严格资源构建必须失败。仅允许开发/打包验证使用显式 placeholder 构建，并需在交付说明中标明该 APK 不是内容完整状态。
 - Android 交付产物为 `app-debug.apk` 和使用本地 keystore 签名的 `app-release.apk`；keystore 与签名密码只保存在 git 忽略路径。

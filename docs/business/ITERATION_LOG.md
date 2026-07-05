@@ -76,3 +76,9 @@
 - Web 顶部标题栏新增“下载手机版 APK”按钮，指向前端静态资源 `/downloads/wordgod.apk`。
 - 静态下载文件由 `android/app/build/outputs/apk/release/app-release.apk` 同步到 `frontend/public/downloads/wordgod.apk`，便于随前端部署直接下载。
 - APK 的 mobile runtime 内部不展示自下载入口；该变更只影响 Web 壳层导航和静态资源，不改变 APK 本地离线运行、认证隐藏规则或学习数据存储。
+
+## 2026-07-05
+
+- 将当前 Android release APK 同步到仓库根目录 `wordgod.apk`，作为 GitHub 仓库首页一级下载入口。
+- 保留 `frontend/public/downloads/wordgod.apk` 作为 Web 静态下载文件；根目录 APK 与 Web 静态 APK 应来自同一 release APK。
+- 该变更只调整仓库发布入口，不改变 APK 本地离线运行、Web 导航下载路径、认证隐藏规则或学习数据存储。
