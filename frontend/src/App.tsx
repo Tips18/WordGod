@@ -22,6 +22,9 @@ interface AppRoutesProps {
   authRevision: number;
 }
 
+const APK_DOWNLOAD_PATH = '/downloads/wordgod.apk';
+const APK_DOWNLOAD_FILENAME = 'wordgod.apk';
+
 /**
  * `LayoutFrame` 为各个页面提供统一的导航与容器。
  */
@@ -35,9 +38,33 @@ function LayoutFrame() {
   );
   const [authRevision, setAuthRevision] = useState(0);
   const isReadingRoute = location.pathname === '/';
+  const isVocabularyRoute = location.pathname.startsWith('/vocabulary');
+  const isMobileRuntime = import.meta.env.VITE_WORD_GOD_RUNTIME === 'mobile';
   const appContainerClassName = [
-    'mx-auto px-4 pb-8 pt-4 sm:px-6 lg:px-8',
+    'mx-auto px-4 pb-8 pt-4 sm:px-6 lg:px-8 mobile-app-shell',
     isReadingRoute ? 'max-w-[104rem]' : 'max-w-7xl',
+  ].join(' ');
+  const navigationLinkBaseClassName =
+    'rounded-full border px-4 py-2 transition';
+  const activeNavigationLinkClassName =
+    'border-[var(--accent)] bg-[var(--accent)] font-semibold !text-white hover:bg-[var(--accent-dark)]';
+  const inactiveNavigationLinkClassName =
+    'border-stone-900/15 text-stone-700 hover:border-stone-900 hover:text-stone-950';
+  const readingNavigationLinkClassName = [
+    navigationLinkBaseClassName,
+    isReadingRoute
+      ? activeNavigationLinkClassName
+      : inactiveNavigationLinkClassName,
+  ].join(' ');
+  const vocabularyNavigationLinkClassName = [
+    navigationLinkBaseClassName,
+    isVocabularyRoute
+      ? activeNavigationLinkClassName
+      : inactiveNavigationLinkClassName,
+  ].join(' ');
+  const apkDownloadLinkClassName = [
+    navigationLinkBaseClassName,
+    'border-[var(--accent)] bg-[var(--paper-muted)] font-semibold text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white',
   ].join(' ');
 
   useEffect(() => {
@@ -163,24 +190,27 @@ function LayoutFrame() {
                   我不是词神
                 </h1>
                 <p className="max-w-2xl text-sm leading-7 text-stone-600 sm:text-base">
-                  在真题语境里重新认识那些你以为自己已经背过的词。先检测，再沉淀，再复习。
+                  阅读历年真题段落，点击生词展示词义并标记为生词
                 </p>
               </div>
             </div>
             <nav className="flex flex-wrap gap-3 text-sm">
-              <Link
-                className="rounded-full border border-stone-900/15 px-4 py-2 text-stone-700 transition hover:border-stone-900 hover:text-stone-950"
-                to="/"
-              >
+              <Link className={readingNavigationLinkClassName} to="/">
                 阅读检测
               </Link>
-              <Link
-                className="rounded-full border border-stone-900/15 px-4 py-2 text-stone-700 transition hover:border-stone-900 hover:text-stone-950"
-                to="/vocabulary"
-              >
+              <Link className={vocabularyNavigationLinkClassName} to="/vocabulary">
                 生词本
               </Link>
-              {user ? (
+              {isMobileRuntime ? null : (
+                <a
+                  className={apkDownloadLinkClassName}
+                  download={APK_DOWNLOAD_FILENAME}
+                  href={APK_DOWNLOAD_PATH}
+                >
+                  下载手机版 APK
+                </a>
+              )}
+              {isMobileRuntime ? null : user ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="max-w-[16rem] truncate rounded-full border border-stone-900/15 bg-white/65 px-4 py-2 text-stone-700">
                     {user.email}
@@ -214,7 +244,7 @@ function LayoutFrame() {
           onAuthenticated={handleAuthenticated}
         />
 
-        {authDialogOpen ? (
+        {!isMobileRuntime && authDialogOpen ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/50 p-4">
             <div
               aria-label="登录 / 注册"

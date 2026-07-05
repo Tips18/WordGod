@@ -48,14 +48,20 @@ function createPassage(translation = PLACEHOLDER_TRANSLATION): PassageRecord {
 }
 
 /**
- * `createOpenAiResponse` 构造 Responses API 的结构化输出响应。
+ * `createDeepSeekResponse` 构造 DeepSeek Chat Completions 的 JSON 输出响应。
  */
-function createOpenAiResponse(translation: string): Response {
+function createDeepSeekResponse(translation: string): Response {
   return new Response(
     JSON.stringify({
-      output_text: JSON.stringify({
-        translations: [{ index: 0, translation }],
-      }),
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              translations: [{ index: 0, translation }],
+            }),
+          },
+        },
+      ],
     }),
     {
       status: 200,
@@ -68,15 +74,15 @@ describe('PassageTranslator', () => {
   const originalFetch = global.fetch;
 
   beforeEach(() => {
-    process.env.OPENAI_API_KEY = 'test-api-key';
-    process.env.OPENAI_TRANSLATION_MODEL = 'gpt-test-translation';
+    process.env.DEEPSEEK_API_KEY = 'test-api-key';
+    process.env.DEEPSEEK_TRANSLATION_MODEL = 'deepseek-test-translation';
     global.fetch = jest.fn();
   });
 
   afterEach(() => {
     global.fetch = originalFetch;
-    delete process.env.OPENAI_API_KEY;
-    delete process.env.OPENAI_TRANSLATION_MODEL;
+    delete process.env.DEEPSEEK_API_KEY;
+    delete process.env.DEEPSEEK_TRANSLATION_MODEL;
     jest.clearAllMocks();
   });
 
@@ -85,7 +91,7 @@ describe('PassageTranslator', () => {
 
     jest
       .mocked(global.fetch)
-      .mockResolvedValueOnce(createOpenAiResponse(translation));
+      .mockResolvedValueOnce(createDeepSeekResponse(translation));
 
     const translator = new PassageTranslator();
     const translated = await translator.translatePassage(createPassage());
@@ -94,7 +100,7 @@ describe('PassageTranslator', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe(
-      'https://api.openai.com/v1/responses',
+      'https://api.deepseek.com/chat/completions',
     );
     expect(requestInit?.method).toBe('POST');
     expect(requestInit?.headers).toEqual({
@@ -107,12 +113,23 @@ describe('PassageTranslator', () => {
     const requestBody = JSON.parse(requestInit?.body as string) as unknown;
 
     expect(requestBody).toMatchObject({
-      model: 'gpt-test-translation',
-      text: { format: { type: 'json_schema' } },
+      model: 'deepseek-test-translation',
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+        },
+        {
+          role: 'user',
+        },
+      ],
     });
+    expect(JSON.stringify(requestBody)).toContain(
+      'translation 字段必须是中文译文，不得返回英文原句',
+    );
   });
 
-  it('skips OpenAI when the passage already has real translations', async () => {
+  it('skips DeepSeek when the passage already has real translations', async () => {
     const passage = createPassage('晦涩的理论与实践保持一致。');
     const translator = new PassageTranslator();
     const translated = await translator.translatePassage(passage);
@@ -122,7 +139,7 @@ describe('PassageTranslator', () => {
   });
 
   it('keeps reading usable with explicit fallback text when API key is missing', async () => {
-    delete process.env.OPENAI_API_KEY;
+    delete process.env.DEEPSEEK_API_KEY;
 
     const translator = new PassageTranslator();
     const translated = await translator.translatePassage(createPassage());
@@ -132,7 +149,7 @@ describe('PassageTranslator', () => {
     expect(translated.tokens[0].translationCn).toBe(UNAVAILABLE_TRANSLATION);
   });
 
-  it('keeps reading usable with explicit fallback text when OpenAI fails', async () => {
+  it('keeps reading usable with explicit fallback text when DeepSeek fails', async () => {
     jest.mocked(global.fetch).mockResolvedValueOnce(
       new Response(JSON.stringify({ error: { message: 'rate limited' } }), {
         status: 429,
@@ -152,7 +169,7 @@ describe('PassageTranslator', () => {
 
     jest
       .mocked(global.fetch)
-      .mockResolvedValueOnce(createOpenAiResponse(translation));
+      .mockResolvedValueOnce(createDeepSeekResponse(translation));
 
     const translator = new PassageTranslator();
     const passage = createPassage();

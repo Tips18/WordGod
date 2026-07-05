@@ -7,9 +7,26 @@
     "dev:frontend": "corepack pnpm --filter @word-god/contracts build && corepack pnpm --filter frontend dev",
     "dev:backend": "corepack pnpm --filter @word-god/contracts build && corepack pnpm --filter backend start:dev",
     "build": "corepack pnpm -r build",
+    "mobile:build-assets": "node scripts/build-mobile-assets.mjs",
+    "mobile:build-assets:placeholder": "node scripts/build-mobile-assets.mjs --allow-placeholder-translations",
+    "build:mobile": "corepack pnpm mobile:build-assets && corepack pnpm --filter @word-god/contracts build && corepack pnpm --filter frontend build:mobile",
+    "build:mobile:placeholder": "corepack pnpm mobile:build-assets:placeholder && corepack pnpm --filter @word-god/contracts build && corepack pnpm --filter frontend build:mobile",
+    "android:sync": "corepack pnpm build:mobile && corepack pnpm exec cap sync android",
+    "android:sync:placeholder": "corepack pnpm build:mobile:placeholder && corepack pnpm exec cap sync android",
+    "android:debug": "corepack pnpm android:sync && cd android && gradlew.bat assembleDebug",
+    "android:debug:placeholder": "corepack pnpm android:sync:placeholder && cd android && gradlew.bat assembleDebug",
+    "android:release": "corepack pnpm android:sync && cd android && gradlew.bat assembleRelease",
+    "android:release:placeholder": "corepack pnpm android:sync:placeholder && cd android && gradlew.bat assembleRelease",
     "lint": "corepack pnpm -r lint",
     "test": "corepack pnpm -r test",
     "test:e2e": "corepack pnpm --filter frontend test:e2e",
     "format": "corepack pnpm -r format"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.3.4"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4"
   }
 }

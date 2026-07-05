@@ -46,3 +46,33 @@
 - 将考研英语二 `Text 1-4` 自然段接入同一题库抽取、缓存、内存种子和 Prisma 随机阅读白名单。
 - 英语二 `Section I Use of English` 完形段落继续保留在标准化 Markdown 中，但不进入首页随机阅读和数据库 Passage 导入集合。
 - `content-cache/wordcram-article-passages.json` 重新抽取为 1021 条自然段，其中英语一 654 条、英语二 367 条。
+
+## 2026-05-27
+
+- 新增 Capacitor Android 工程，App 名称为 `WordGod`，包名为 `com.wordgod.app`，用于封装现有 React/Vite 前端为离线 APK。
+- 前端新增 mobile runtime 本地数据层，APK 模式移除登录/注册/验证码/退出入口，使用本机默认用户保存阅读标记、生词本和最近三条上下文；Web 模式继续使用 REST API。
+- 新增移动端离线资源生成脚本，默认从 1021 条考研英语一/二阅读自然段生成 APK 资源，并只抽取题库实际用到的 ECDICT 词条。
+- 移动端资源生成加入严格译文校验；当前仓库缺少真实 `mobile-sentence-translations.json`，因此只能通过显式 placeholder 命令产出可安装验证包。
+- Android Manifest 移除 `INTERNET` 权限，release 构建读取 git 忽略的本地 keystore 配置并输出签名 APK。
+
+## 2026-05-30
+
+- 手机版阅读页将 Live Note 从桌面右侧旁批改为点击词面后贴近该词出现的可关闭弹窗，弹窗展示词性、释义、原句和句子译文。
+- 手机端标题栏、阅读正文 token、本篇已选列表和单词详情弹窗字号整体收紧，降低 360px 到 390px 宽屏幕上的换行、溢出和遮挡风险。
+- 该改动只影响前端组件状态与 CSS，不改变 REST DTO、APK 本地存储 schema、后端数据库表或结算逻辑。
+
+## 2026-06-01
+
+- 移除 mobile runtime 顶部“本机离线”状态 chip，标题栏保留“阅读检测”和“生词本”两个页面入口。
+- 本机默认用户、离线阅读标记、生词本、本地存储 schema 和 Web REST 认证流程保持不变。
+- 手机版阅读页将“下一篇”动作区移动到“本篇已选”列表下方；桌面端仍通过 grid 把动作区放在正文列，结算逻辑和存储结构不变。
+- 移除“下一篇”成功后的“已沉淀...”提示，成功结算后直接展示下一段；失败提示仍保留在动作区。
+- 手机版 Live Note 单词详情弹窗支持点击弹窗外区域关闭；该行为只影响前端组件状态，不改变本地存储或结算逻辑。
+- 手机版 Live Note 单词详情弹窗不再显示“翻译暂不可用，请稍后重试。”占位译文；真实译文可用时仍正常展示。
+- 生词本列表的标记次数徽标改为固定小尺寸，长词义仅在左侧文本区域换行，不再拉伸或挤压徽标。
+
+## 2026-06-16
+
+- Web 顶部标题栏新增“下载手机版 APK”按钮，指向前端静态资源 `/downloads/wordgod.apk`。
+- 静态下载文件由 `android/app/build/outputs/apk/release/app-release.apk` 同步到 `frontend/public/downloads/wordgod.apk`，便于随前端部署直接下载。
+- APK 的 mobile runtime 内部不展示自下载入口；该变更只影响 Web 壳层导航和静态资源，不改变 APK 本地离线运行、认证隐藏规则或学习数据存储。

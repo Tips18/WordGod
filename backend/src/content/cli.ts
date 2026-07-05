@@ -9,13 +9,13 @@ import {
   restoreClozeAnswers,
 } from './parser';
 import {
-  createOpenAiBatch,
+  createDeepSeekBatch,
   createWordBankImportPaths,
   extractWordBankPassages,
-  fetchOpenAiBatchOutput,
+  fetchDeepSeekBatchOutput,
   readBatchEnrichments,
   upsertEnrichedPassages,
-  writeOpenAiBatchInput,
+  writeDeepSeekBatchInput,
 } from './word-bank.importer';
 
 interface SourceFixture {
@@ -186,20 +186,20 @@ async function runIngest() {
 }
 
 /**
- * `getOpenAiModel` 读取内容富化使用的 OpenAI 模型名。
+ * `getDeepSeekModel` 读取内容富化使用的 DeepSeek 模型名。
  */
-function getOpenAiModel(): string {
-  return process.env.OPENAI_TRANSLATION_MODEL ?? 'gpt-5-mini';
+function getDeepSeekModel(): string {
+  return process.env.DEEPSEEK_TRANSLATION_MODEL ?? 'deepseek-v4-flash';
 }
 
 /**
- * `getOpenAiApiKey` 读取 OpenAI API Key 并在缺失时给出明确错误。
+ * `getDeepSeekApiKey` 读取 DeepSeek API Key 并在缺失时给出明确错误。
  */
-function getOpenAiApiKey(): string {
-  const apiKey = process.env.OPENAI_API_KEY;
+function getDeepSeekApiKey(): string {
+  const apiKey = process.env.DEEPSEEK_API_KEY;
 
   if (!apiKey) {
-    throw new Error('缺少 OPENAI_API_KEY，无法创建或下载 OpenAI Batch');
+    throw new Error('缺少 DEEPSEEK_API_KEY，无法调用 DeepSeek 内容富化');
   }
 
   return apiKey;
@@ -239,7 +239,7 @@ async function runExtractWordBank() {
 }
 
 /**
- * `runCreateTranslationBatch` 生成并提交 OpenAI Batch 富化任务。
+ * `runCreateTranslationBatch` 生成 DeepSeek 本地富化队列。
  */
 async function runCreateTranslationBatch() {
   const selected = await extractWordBankPassages(
@@ -247,24 +247,34 @@ async function runCreateTranslationBatch() {
     hasFlag('--force-resample'),
   );
 
-  await writeOpenAiBatchInput(wordBankImportPaths, selected, getOpenAiModel());
-
-  const metadata = await createOpenAiBatch(
+  await writeDeepSeekBatchInput(
     wordBankImportPaths,
-    getOpenAiApiKey(),
+    selected,
+    getDeepSeekModel(),
   );
 
-  console.log(`Created OpenAI batch ${metadata.batchId}.`);
+  const metadata = await createDeepSeekBatch(wordBankImportPaths);
+
+  console.log(
+    `Created DeepSeek local batch ${metadata.batchId} with ${metadata.requestCount} requests.`,
+  );
 }
 
 /**
- * `runImportTranslationBatch` 下载或读取 Batch 输出并写入 PostgreSQL。
+ * `runImportTranslationBatch` 执行或读取 DeepSeek 本地输出并写入 PostgreSQL。
  */
 async function runImportTranslationBatch() {
   const selected = await extractWordBankPassages(wordBankImportPaths, false);
 
   if (!hasFlag('--skip-download')) {
-    await fetchOpenAiBatchOutput(wordBankImportPaths, getOpenAiApiKey());
+    const summary = await fetchDeepSeekBatchOutput(
+      wordBankImportPaths,
+      getDeepSeekApiKey(),
+    );
+
+    console.log(
+      `DeepSeek local batch wrote ${summary.writtenCount} rows, skipped ${summary.skippedCount}, failed ${summary.failedCount}.`,
+    );
   }
 
   const { enrichments, errors } =
@@ -287,7 +297,7 @@ async function runImportTranslationBatch() {
 }
 
 /**
- * `runImportWordBank` 执行词库抽取并根据现有 Batch 输出决定创建或入库。
+ * `runImportWordBank` 执行词库抽取并根据现有 DeepSeek 输出决定创建或入库。
  */
 async function runImportWordBank() {
   const selected = await extractWordBankPassages(
@@ -295,20 +305,21 @@ async function runImportWordBank() {
     hasFlag('--force-resample'),
   );
 
-  await writeOpenAiBatchInput(wordBankImportPaths, selected, getOpenAiModel());
+  await writeDeepSeekBatchInput(
+    wordBankImportPaths,
+    selected,
+    getDeepSeekModel(),
+  );
 
   if (hasFlag('--skip-download')) {
     await runImportTranslationBatch();
     return;
   }
 
-  const metadata = await createOpenAiBatch(
-    wordBankImportPaths,
-    getOpenAiApiKey(),
-  );
+  const metadata = await createDeepSeekBatch(wordBankImportPaths);
 
   console.log(
-    `Created OpenAI batch ${metadata.batchId}. Re-run import-translation-batch after it completes.`,
+    `Created DeepSeek local batch ${metadata.batchId}. Run import-translation-batch to call DeepSeek and import results.`,
   );
 }
 

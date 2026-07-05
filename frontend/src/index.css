@@ -25,8 +25,13 @@ body,
   margin: 0;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   background: #f2e6d1;
+  overflow-x: hidden;
 }
 
 a {
@@ -37,4 +42,107 @@ a {
 button,
 input {
   font: inherit;
+}
+
+@media (max-width: 640px) {
+  .mobile-app-shell {
+    padding-left: max(0.875rem, env(safe-area-inset-left));
+    padding-right: max(0.875rem, env(safe-area-inset-right));
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+
+  .mobile-app-shell header {
+    margin-bottom: 1rem;
+    border-radius: 1.25rem;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .mobile-app-shell header h1 {
+    font-size: 1.55rem;
+    line-height: 1.12;
+  }
+
+  .mobile-app-shell header p {
+    font-size: 0.78rem;
+    line-height: 1.55;
+  }
+
+  .mobile-app-shell header nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .mobile-app-shell header nav > * {
+    justify-content: center;
+    padding: 0.55rem 0.65rem;
+    text-align: center;
+    font-size: 0.78rem;
+  }
+
+  [data-testid="reading-layout"] {
+    gap: 1rem;
+  }
+
+  [data-testid="reading-layout"] > article,
+  [data-testid="reading-layout"] aside > section {
+    border-radius: 1.25rem;
+    padding: 1rem;
+  }
+
+  [data-testid="reading-layout"] > article > div:first-child {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  [data-testid="reading-layout"] h2 {
+    font-size: 1.35rem;
+    line-height: 1.18;
+  }
+
+  [data-testid="reading-layout"] h3 {
+    font-size: 1.2rem;
+    line-height: 1.2;
+  }
+
+  [data-testid="reading-layout"] p {
+    overflow-wrap: anywhere;
+  }
+
+  [data-testid="reading-layout"] .reading-passage-text {
+    font-size: 0.95rem;
+    line-height: 1.72;
+  }
+
+  [data-testid="reading-layout"] .reading-token-button {
+    min-height: 1.5rem;
+    border-radius: 0.3rem;
+    padding-left: 0.08rem;
+    padding-right: 0.08rem;
+  }
+
+  [data-testid="reading-layout"] > article > div:first-child p,
+  [data-testid="reading-layout"] aside p,
+  [data-testid="reading-layout"] li,
+  [data-testid="reading-layout"] .reading-continue-action {
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+
+  [data-testid="reading-layout"] [aria-label="Live Note"] {
+    display: none;
+  }
+
+  .mobile-word-note {
+    width: min(18rem, calc(100vw - 1.5rem));
+    max-height: min(62vh, 24rem);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-word-note h3 {
+    font-size: 1.35rem;
+  }
 }

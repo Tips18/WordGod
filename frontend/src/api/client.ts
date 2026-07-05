@@ -12,8 +12,27 @@ import type {
   VocabularyDetailResponse,
   VocabularyListResponse,
 } from '@word-god/contracts';
+import type { MobileLocalClient } from './mobile-local-client';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+const IS_MOBILE_RUNTIME = import.meta.env.VITE_WORD_GOD_RUNTIME === 'mobile';
+let mobileClientPromise: Promise<MobileLocalClient> | null = null;
+
+/**
+ * `getMobileClient` 懒加载移动端本地客户端和离线题库资源。
+ */
+async function getMobileClient(): Promise<MobileLocalClient> {
+  mobileClientPromise ??= Promise.all([
+    import('./mobile-local-client'),
+    import('../mobile/mobile-passages.generated'),
+  ]).then(([clientModule, passageModule]) =>
+    clientModule.createMobileLocalClient({
+      passages: passageModule.mobilePassages,
+    }),
+  );
+
+  return mobileClientPromise;
+}
 
 /**
  * `ApiError` 封装后端接口返回的错误状态。
@@ -56,6 +75,10 @@ async function requestJson<TResponse>(path: string, init?: RequestInit): Promise
  * `getRandomPassage` 获取阅读页需要展示的随机段落。
  */
 export function getRandomPassage(): Promise<ReadingPassageResponse> {
+  if (IS_MOBILE_RUNTIME) {
+    return getMobileClient().then((client) => client.getRandomPassage());
+  }
+
   return requestJson<ReadingPassageResponse>('/reading/passages/random');
 }
 
@@ -66,6 +89,12 @@ export function syncReadingAttempt(
   passageId: string,
   payload: SyncReadingAttemptRequest,
 ): Promise<{ success: true }> {
+  if (IS_MOBILE_RUNTIME) {
+    return getMobileClient().then((client) =>
+      client.syncReadingAttempt(passageId, payload),
+    );
+  }
+
   return requestJson<{ success: true }>(`/reading/attempts/${passageId}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
@@ -76,6 +105,12 @@ export function syncReadingAttempt(
  * `completeReadingAttempt` 结算当前段落并获取下一段。
  */
 export function completeReadingAttempt(passageId: string): Promise<CompleteReadingAttemptResponse> {
+  if (IS_MOBILE_RUNTIME) {
+    return getMobileClient().then((client) =>
+      client.completeReadingAttempt(passageId),
+    );
+  }
+
   return requestJson<CompleteReadingAttemptResponse>(`/reading/attempts/${passageId}/complete`, {
     method: 'POST',
   });
@@ -85,6 +120,11 @@ export function completeReadingAttempt(passageId: string): Promise<CompleteReadi
  * `login` 使用邮箱和密码登录。
  */
 export function login(payload: LoginRequest): Promise<AuthResponse> {
+  if (IS_MOBILE_RUNTIME) {
+    void payload;
+    return getMobileClient().then((client) => client.getCurrentUser());
+  }
+
   return requestJson<AuthResponse>('/auth/login', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -95,6 +135,11 @@ export function login(payload: LoginRequest): Promise<AuthResponse> {
  * `register` 使用邮箱和密码注册。
  */
 export function register(payload: RegisterRequest): Promise<AuthResponse> {
+  if (IS_MOBILE_RUNTIME) {
+    void payload;
+    return getMobileClient().then((client) => client.getCurrentUser());
+  }
+
   return requestJson<AuthResponse>('/auth/register', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -105,6 +150,11 @@ export function register(payload: RegisterRequest): Promise<AuthResponse> {
  * `sendEmailCode` 请求后端向指定邮箱发送一次性验证码。
  */
 export function sendEmailCode(payload: SendEmailCodeRequest): Promise<SendEmailCodeResponse> {
+  if (IS_MOBILE_RUNTIME) {
+    void payload;
+    return Promise.resolve({ success: true });
+  }
+
   return requestJson<SendEmailCodeResponse>('/auth/email-codes', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -115,6 +165,11 @@ export function sendEmailCode(payload: SendEmailCodeRequest): Promise<SendEmailC
  * `loginWithEmailCode` 使用邮箱验证码完成登录。
  */
 export function loginWithEmailCode(payload: EmailCodeLoginRequest): Promise<AuthResponse> {
+  if (IS_MOBILE_RUNTIME) {
+    void payload;
+    return getMobileClient().then((client) => client.getCurrentUser());
+  }
+
   return requestJson<AuthResponse>('/auth/login/email-code', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -125,6 +180,11 @@ export function loginWithEmailCode(payload: EmailCodeLoginRequest): Promise<Auth
  * `resetPassword` 使用邮箱验证码重置密码并建立登录会话。
  */
 export function resetPassword(payload: ResetPasswordRequest): Promise<AuthResponse> {
+  if (IS_MOBILE_RUNTIME) {
+    void payload;
+    return getMobileClient().then((client) => client.getCurrentUser());
+  }
+
   return requestJson<AuthResponse>('/auth/password/reset', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -135,6 +195,10 @@ export function resetPassword(payload: ResetPasswordRequest): Promise<AuthRespon
  * `logout` 结束当前会话。
  */
 export function logout(): Promise<{ success: true }> {
+  if (IS_MOBILE_RUNTIME) {
+    return Promise.resolve({ success: true });
+  }
+
   return requestJson<{ success: true }>('/auth/logout', {
     method: 'POST',
   });
@@ -144,6 +208,10 @@ export function logout(): Promise<{ success: true }> {
  * `listVocabulary` 获取当前用户的生词本列表。
  */
 export function listVocabulary(): Promise<VocabularyListResponse> {
+  if (IS_MOBILE_RUNTIME) {
+    return getMobileClient().then((client) => client.listVocabulary());
+  }
+
   return requestJson<VocabularyListResponse>('/vocabulary');
 }
 
@@ -151,6 +219,12 @@ export function listVocabulary(): Promise<VocabularyListResponse> {
  * `getVocabularyDetail` 获取指定 lemma 的生词详情。
  */
 export function getVocabularyDetail(lemma: string): Promise<VocabularyDetailResponse> {
+  if (IS_MOBILE_RUNTIME) {
+    return getMobileClient().then((client) =>
+      client.getVocabularyDetail(lemma),
+    );
+  }
+
   return requestJson<VocabularyDetailResponse>(`/vocabulary/${lemma}`);
 }
 
@@ -158,5 +232,9 @@ export function getVocabularyDetail(lemma: string): Promise<VocabularyDetailResp
  * `getCurrentUser` 获取当前登录用户信息。
  */
 export function getCurrentUser(): Promise<{ user: { id: string; email: string } } | { user: null }> {
+  if (IS_MOBILE_RUNTIME) {
+    return getMobileClient().then((client) => client.getCurrentUser());
+  }
+
   return requestJson<{ user: { id: string; email: string } } | { user: null }>('/auth/me');
 }

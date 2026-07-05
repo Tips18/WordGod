@@ -1,14 +1,22 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import {
+  appendFile,
+  mkdir,
+  readFile,
+  readdir,
+  writeFile,
+} from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import {
+  BatchRequestLine,
+  DeepSeekBatchOutputLine,
   buildBatchRequestLine,
   EnrichedPassage,
   parseBatchOutputLine,
-} from './openai-enrichment';
+} from './deepseek-enrichment';
 import {
   extractReadingTextCandidates,
   SelectedWordBankPassage,
@@ -32,13 +40,25 @@ export interface WordBankImportPaths {
 }
 
 /**
- * `OpenAiBatchMetadata` 描述已提交的 OpenAI Batch 任务。
+ * `DeepSeekBatchMetadata` 描述本地 DeepSeek 批处理队列元数据。
  */
-export interface OpenAiBatchMetadata {
+export interface DeepSeekBatchMetadata {
   batchId: string;
-  inputFileId: string;
-  outputFileId: string | null;
+  inputFile: string;
+  outputFile: string;
+  requestCount: number;
   createdAt: string;
+}
+
+/**
+ * `DeepSeekBatchRunSummary` 描述一次本地 DeepSeek 队列执行结果。
+ */
+export interface DeepSeekBatchRunSummary {
+  requestedCount: number;
+  skippedCount: number;
+  writtenCount: number;
+  failedCount: number;
+  outputFile: string;
 }
 
 /**
@@ -58,10 +78,13 @@ export function createWordBankImportPaths(
     cacheRoot,
     extractedPassagesFile: join(cacheRoot, 'wordcram-article-passages.json'),
     extractionWarningsFile: join(cacheRoot, 'wordcram-article-warnings.json'),
-    batchInputFile: join(cacheRoot, 'openai-translation-batch-input.jsonl'),
-    batchMetaFile: join(cacheRoot, 'openai-translation-batch.json'),
-    batchOutputFile: join(cacheRoot, 'openai-translation-batch-output.jsonl'),
-    importErrorsFile: join(cacheRoot, 'openai-translation-import-errors.json'),
+    batchInputFile: join(cacheRoot, 'deepseek-translation-batch-input.jsonl'),
+    batchMetaFile: join(cacheRoot, 'deepseek-translation-batch.json'),
+    batchOutputFile: join(cacheRoot, 'deepseek-translation-batch-output.jsonl'),
+    importErrorsFile: join(
+      cacheRoot,
+      'deepseek-translation-import-errors.json',
+    ),
   };
 }
 
@@ -158,9 +181,9 @@ export async function extractWordBankPassages(
 }
 
 /**
- * `writeOpenAiBatchInput` 将抽中段落转换为 OpenAI Batch JSONL。
+ * `writeDeepSeekBatchInput` 将抽中段落转换为 DeepSeek 本地批处理 JSONL。
  */
-export async function writeOpenAiBatchInput(
+export async function writeDeepSeekBatchInput(
   paths: WordBankImportPaths,
   passages: SelectedWordBankPassage[],
   model: string,
@@ -174,79 +197,44 @@ export async function writeOpenAiBatchInput(
 }
 
 /**
- * `uploadOpenAiBatchInput` 上传 Batch 输入文件并返回文件 id。
+ * `readDeepSeekBatchInput` 读取并校验 DeepSeek 本地批处理请求行。
  */
-async function uploadOpenAiBatchInput(
-  apiKey: string,
-  batchInput: string,
-): Promise<string> {
-  const formData = new FormData();
+async function readDeepSeekBatchInput(
+  paths: WordBankImportPaths,
+): Promise<BatchRequestLine[]> {
+  const lines = (await readFile(paths.batchInputFile, 'utf8'))
+    .split(/\r?\n/)
+    .filter(Boolean);
 
-  formData.append('purpose', 'batch');
-  formData.append(
-    'file',
-    new Blob([batchInput], { type: 'application/jsonl' }),
-    'word-god-batch.jsonl',
-  );
+  return lines.map((line, index) => {
+    const request = JSON.parse(line) as BatchRequestLine;
 
-  const response = await fetch('https://api.openai.com/v1/files', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: formData,
+    if (
+      !request.custom_id ||
+      request.method !== 'POST' ||
+      request.url !== '/chat/completions'
+    ) {
+      throw new Error(`DeepSeek 批处理输入第 ${index + 1} 行无效`);
+    }
+
+    return request;
   });
-  const payload = (await response.json()) as {
-    id?: string;
-    error?: { message?: string };
-  };
-
-  if (!response.ok || !payload.id) {
-    throw new Error(payload.error?.message ?? 'OpenAI 文件上传失败');
-  }
-
-  return payload.id;
 }
 
 /**
- * `createOpenAiBatch` 创建 OpenAI Batch 任务并保存元数据。
+ * `createDeepSeekBatch` 创建本地 DeepSeek 批处理元数据。
  */
-export async function createOpenAiBatch(
+export async function createDeepSeekBatch(
   paths: WordBankImportPaths,
-  apiKey: string,
-): Promise<OpenAiBatchMetadata> {
-  const batchInput = await readFile(paths.batchInputFile, 'utf8');
-  const inputFileId = await uploadOpenAiBatchInput(apiKey, batchInput);
-  const response = await fetch('https://api.openai.com/v1/batches', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      input_file_id: inputFileId,
-      endpoint: '/v1/responses',
-      completion_window: '24h',
-      metadata: {
-        project: 'word-god',
-        purpose: 'kaoyan-passage-enrichment',
-      },
-    }),
-  });
-  const payload = (await response.json()) as {
-    id?: string;
-    output_file_id?: string | null;
-    error?: { message?: string };
-  };
+): Promise<DeepSeekBatchMetadata> {
+  await ensureCacheRoot(paths);
+  const requests = await readDeepSeekBatchInput(paths);
 
-  if (!response.ok || !payload.id) {
-    throw new Error(payload.error?.message ?? 'OpenAI Batch 创建失败');
-  }
-
-  const metadata: OpenAiBatchMetadata = {
-    batchId: payload.id,
-    inputFileId,
-    outputFileId: payload.output_file_id ?? null,
+  const metadata: DeepSeekBatchMetadata = {
+    batchId: `deepseek-local-${Date.now()}`,
+    inputFile: paths.batchInputFile,
+    outputFile: paths.batchOutputFile,
+    requestCount: requests.length,
     createdAt: new Date().toISOString(),
   };
 
@@ -260,49 +248,133 @@ export async function createOpenAiBatch(
 }
 
 /**
- * `fetchOpenAiBatchOutput` 下载已完成 Batch 的输出 JSONL。
+ * `readCompletedDeepSeekOutputIds` 从现有输出 JSONL 中读取已完成的段落 id。
  */
-export async function fetchOpenAiBatchOutput(
+async function readCompletedDeepSeekOutputIds(
+  paths: WordBankImportPaths,
+): Promise<Set<string>> {
+  const completedIds = new Set<string>();
+
+  if (!existsSync(paths.batchOutputFile)) {
+    return completedIds;
+  }
+
+  const lines = (await readFile(paths.batchOutputFile, 'utf8'))
+    .split(/\r?\n/)
+    .filter(Boolean);
+
+  for (const line of lines) {
+    try {
+      const parsed = JSON.parse(line) as { custom_id?: unknown };
+
+      if (typeof parsed.custom_id === 'string' && parsed.custom_id) {
+        completedIds.add(parsed.custom_id);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return completedIds;
+}
+
+/**
+ * `parseDeepSeekResponseBody` 将 DeepSeek HTTP 响应文本转换为可写入 JSONL 的对象。
+ */
+function parseDeepSeekResponseBody(responseText: string): unknown {
+  if (!responseText) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(responseText) as unknown;
+  } catch {
+    return { raw: responseText };
+  }
+}
+
+/**
+ * `requestDeepSeekEnrichment` 调用 DeepSeek Chat Completions 并返回可落盘响应。
+ */
+async function requestDeepSeekEnrichment(
+  apiKey: string,
+  body: BatchRequestLine['body'],
+): Promise<DeepSeekBatchOutputLine['response']> {
+  const response = await fetch('https://api.deepseek.com/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  const responseBody = parseDeepSeekResponseBody(await response.text());
+
+  return {
+    status_code: response.status,
+    body: responseBody,
+  };
+}
+
+/**
+ * `fetchDeepSeekBatchOutput` 执行本地 DeepSeek 队列并把新增结果追加到输出 JSONL。
+ */
+export async function fetchDeepSeekBatchOutput(
   paths: WordBankImportPaths,
   apiKey: string,
-): Promise<void> {
-  const metadata = JSON.parse(
-    await readFile(paths.batchMetaFile, 'utf8'),
-  ) as OpenAiBatchMetadata;
-  const batchResponse = await fetch(
-    `https://api.openai.com/v1/batches/${metadata.batchId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-    },
-  );
-  const batchPayload = (await batchResponse.json()) as {
-    output_file_id?: string | null;
-    error?: { message?: string };
-  };
-  const outputFileId = batchPayload.output_file_id ?? metadata.outputFileId;
+): Promise<DeepSeekBatchRunSummary> {
+  await ensureCacheRoot(paths);
+  const requests = await readDeepSeekBatchInput(paths);
+  const completedIds = await readCompletedDeepSeekOutputIds(paths);
+  let skippedCount = 0;
+  let writtenCount = 0;
+  let failedCount = 0;
 
-  if (!batchResponse.ok || !outputFileId) {
-    throw new Error(
-      batchPayload.error?.message ?? 'OpenAI Batch 尚未生成输出文件',
+  for (const request of requests) {
+    if (completedIds.has(request.custom_id)) {
+      skippedCount += 1;
+      continue;
+    }
+
+    let outputLine: DeepSeekBatchOutputLine;
+
+    try {
+      const response = await requestDeepSeekEnrichment(apiKey, request.body);
+
+      if (response?.status_code && response.status_code >= 400) {
+        failedCount += 1;
+      }
+
+      outputLine = {
+        custom_id: request.custom_id,
+        response,
+      };
+    } catch (error) {
+      failedCount += 1;
+      outputLine = {
+        custom_id: request.custom_id,
+        error: {
+          message: error instanceof Error ? error.message : 'DeepSeek 调用失败',
+        },
+      };
+    }
+
+    await appendFile(
+      paths.batchOutputFile,
+      `${JSON.stringify(outputLine)}\n`,
+      'utf8',
     );
+    completedIds.add(request.custom_id);
+    writtenCount += 1;
   }
 
-  const outputResponse = await fetch(
-    `https://api.openai.com/v1/files/${outputFileId}/content`,
-    {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-    },
-  );
-
-  if (!outputResponse.ok) {
-    throw new Error('OpenAI Batch 输出下载失败');
-  }
-
-  await writeFile(paths.batchOutputFile, await outputResponse.text(), 'utf8');
+  return {
+    requestedCount: requests.length,
+    skippedCount,
+    writtenCount,
+    failedCount,
+    outputFile: paths.batchOutputFile,
+  };
 }
 
 /**

@@ -63,13 +63,14 @@ corepack pnpm --filter backend start:dev
 - `translated-passages.json`
 - `ingested-passages.json`
 - `ingested-lexicon.json`
-- `word-bank-extracted-passages.json`
-- `openai-translation-batch-input.jsonl`
-- `openai-translation-batch.json`
-- `openai-translation-batch-output.jsonl`
-- `openai-translation-import-errors.json`
+- `wordcram-article-passages.json`
+- `wordcram-article-warnings.json`
+- `deepseek-translation-batch-input.jsonl`
+- `deepseek-translation-batch.json`
+- `deepseek-translation-batch-output.jsonl`
+- `deepseek-translation-import-errors.json`
 
-`content:create-translation-batch` 和 `content:import-translation-batch` 需要 `OPENAI_API_KEY`。Batch 输出会先经过 schema 校验，无法解析的行会写入导入错误记录；成功富化的段落按稳定段落 id upsert 到 PostgreSQL，同时按 lemma upsert 词典词条。`content:import-ecdict` 会读取 `ECDICT_MARKDOWN_PATH` 或默认 `词库/ecdict.md`，将 ECDICT 全量词条批量 upsert 到 `LexiconEntry`。
+`content:create-translation-batch` 会生成 DeepSeek 本地 JSONL 队列和元数据；`content:import-translation-batch` 需要 `DEEPSEEK_API_KEY`，会逐条调用 DeepSeek Chat Completions 补齐缺失输出，已有 `custom_id` 输出行会被跳过以支持断点续跑。传入 `--skip-download` 时不会调用 DeepSeek，只读取现有输出并导入。Batch 输出会先经过 schema 校验，无法解析的行会写入导入错误记录；成功富化的段落按稳定段落 id upsert 到 PostgreSQL，同时按 lemma upsert 词典词条。`content:import-ecdict` 会读取 `ECDICT_MARKDOWN_PATH` 或默认 `词库/ecdict.md`，将 ECDICT 全量词条批量 upsert 到 `LexiconEntry`。
 
 ## 2026-05-20 邮箱验证码认证更新
 

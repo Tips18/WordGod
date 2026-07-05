@@ -6,7 +6,7 @@ import type {
   ReadingPassageResponse,
 } from '@word-god/contracts';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { startTransition, useState } from 'react';
+import { startTransition, useEffect, useRef, useState } from 'react';
 import {
   ApiError,
   completeReadingAttempt,
@@ -32,9 +32,29 @@ interface SelectedWordListItem {
   surface: string;
 }
 
+interface MobileWordNotePosition {
+  top: number;
+  left: number;
+}
+
+interface MobileWordNoteState {
+  open: boolean;
+  position: MobileWordNotePosition;
+}
+
 interface ReadingPageProps {
   onAuthenticated?: (user: AuthUser) => void;
 }
+
+const MOBILE_WORD_NOTE_WIDTH = 288;
+const MOBILE_WORD_NOTE_ESTIMATED_HEIGHT = 252;
+const MOBILE_WORD_NOTE_MARGIN = 12;
+const MOBILE_WORD_NOTE_OFFSET = 8;
+const DEFAULT_MOBILE_WORD_NOTE_POSITION = {
+  top: 96,
+  left: MOBILE_WORD_NOTE_MARGIN,
+};
+const UNAVAILABLE_TRANSLATION_TEXT = '翻译暂不可用，请稍后重试。';
 
 /**
  * `normalizeTokenKey` 将英文表面词规整为匹配 token 的键。
@@ -113,6 +133,55 @@ function buildSelectedWordListItems(
 }
 
 /**
+ * `shouldOpenMobileWordNote` 判断当前运行环境是否应使用贴近词面的移动端弹窗。
+ */
+function shouldOpenMobileWordNote(): boolean {
+  if (import.meta.env.VITE_WORD_GOD_RUNTIME === 'mobile') {
+    return true;
+  }
+
+  if (typeof window === 'undefined' || !window.matchMedia) {
+    return false;
+  }
+
+  return window.matchMedia('(max-width: 640px)').matches;
+}
+
+/**
+ * `createMobileWordNotePosition` 根据被点击词面位置生成不越出视口的弹窗坐标。
+ */
+function createMobileWordNotePosition(
+  targetElement: HTMLElement,
+): MobileWordNotePosition {
+  if (typeof window === 'undefined') {
+    return DEFAULT_MOBILE_WORD_NOTE_POSITION;
+  }
+
+  const targetRect = targetElement.getBoundingClientRect();
+  const viewportWidth =
+    window.innerWidth || MOBILE_WORD_NOTE_WIDTH + MOBILE_WORD_NOTE_MARGIN * 2;
+  const viewportHeight =
+    window.innerHeight ||
+    MOBILE_WORD_NOTE_ESTIMATED_HEIGHT + MOBILE_WORD_NOTE_MARGIN * 2;
+  const maxLeft = Math.max(
+    MOBILE_WORD_NOTE_MARGIN,
+    viewportWidth - MOBILE_WORD_NOTE_WIDTH - MOBILE_WORD_NOTE_MARGIN,
+  );
+  const maxTop = Math.max(
+    MOBILE_WORD_NOTE_MARGIN,
+    viewportHeight - MOBILE_WORD_NOTE_ESTIMATED_HEIGHT - MOBILE_WORD_NOTE_MARGIN,
+  );
+  const desiredLeft =
+    targetRect.left + targetRect.width / 2 - MOBILE_WORD_NOTE_WIDTH / 2;
+  const desiredTop = targetRect.bottom + MOBILE_WORD_NOTE_OFFSET;
+
+  return {
+    top: Math.min(Math.max(desiredTop, MOBILE_WORD_NOTE_MARGIN), maxTop),
+    left: Math.min(Math.max(desiredLeft, MOBILE_WORD_NOTE_MARGIN), maxLeft),
+  };
+}
+
+/**
  * `ReadingPage` 承载阅读检测、标记与登录拦截流程。
  */
 export function ReadingPage({ onAuthenticated }: ReadingPageProps) {
@@ -130,6 +199,12 @@ export function ReadingPage({ onAuthenticated }: ReadingPageProps) {
   } | null>(null);
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [mobileWordNoteState, setMobileWordNoteState] =
+    useState<MobileWordNoteState>({
+      open: false,
+      position: DEFAULT_MOBILE_WORD_NOTE_POSITION,
+    });
+  const mobileWordNoteRef = useRef<HTMLDivElement | null>(null);
   const activePassage = nextPassage ?? passageQuery.data ?? null;
   const activeLocalState =
     activePassage && localReadingState?.passageId === activePassage.passage.id
@@ -155,6 +230,18 @@ export function ReadingPage({ onAuthenticated }: ReadingPageProps) {
   const focusedToken = focusedTokenId
     ? (tokenMap.get(focusedTokenId) ?? null)
     : null;
+  const focusedSentence =
+    focusedToken && activePassage
+      ? (activePassage.sentences[focusedToken.sentenceIndex] ?? null)
+      : null;
+  const focusedSentenceText =
+    focusedSentence?.text ?? activePassage?.passage.content ?? '';
+  const focusedSentenceTranslation =
+    focusedSentence?.translation ??
+    focusedToken?.translationCn ??
+    UNAVAILABLE_TRANSLATION_TEXT;
+  const shouldShowMobileSentenceTranslation =
+    focusedSentenceTranslation.trim() !== UNAVAILABLE_TRANSLATION_TEXT;
   const selectedWordItems = buildSelectedWordListItems(
     activePassage?.tokens ?? [],
     selectedTokenIds,
@@ -163,12 +250,51 @@ export function ReadingPage({ onAuthenticated }: ReadingPageProps) {
     ? buildPassageTextParts(activePassage.passage.content, activePassage.tokens)
     : [];
 
+  useEffect(() => {
+    if (!mobileWordNoteState.open) {
+      return undefined;
+    }
+
+    /**
+     * `handleDocumentPointerDown` 在移动端单词弹窗外部点击时关闭弹窗。
+     */
+    function handleDocumentPointerDown(event: PointerEvent) {
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (mobileWordNoteRef.current?.contains(target)) {
+        return;
+      }
+
+      setMobileWordNoteState((currentState) => ({
+        ...currentState,
+        open: false,
+      }));
+    }
+
+    document.addEventListener('pointerdown', handleDocumentPointerDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handleDocumentPointerDown);
+    };
+  }, [mobileWordNoteState.open]);
+
   /**
    * `toggleToken` 切换指定 token 的标记状态，并更新当前详情卡片。
    */
-  function toggleToken(tokenId: string) {
+  function toggleToken(tokenId: string, targetElement: HTMLElement) {
     if (!activePassage) {
       return;
+    }
+
+    if (shouldOpenMobileWordNote()) {
+      setMobileWordNoteState({
+        open: true,
+        position: createMobileWordNotePosition(targetElement),
+      });
     }
 
     setLocalReadingState((currentState) => {
@@ -189,12 +315,27 @@ export function ReadingPage({ onAuthenticated }: ReadingPageProps) {
   }
 
   /**
+   * `closeMobileWordNote` 关闭手机端单词详情弹窗并保留当前选词状态。
+   */
+  function closeMobileWordNote() {
+    setMobileWordNoteState((currentState) => ({
+      ...currentState,
+      open: false,
+    }));
+  }
+
+  /**
    * `removeSelectedWord` 从当前段落标记集合中移除指定 lemma 的已选词。
    */
   function removeSelectedWord(lemma: string) {
     if (!activePassage) {
       return;
     }
+
+    setMobileWordNoteState((currentState) => ({
+      ...currentState,
+      open: false,
+    }));
 
     setLocalReadingState((currentState) => {
       const currentSelection =
@@ -229,6 +370,10 @@ export function ReadingPage({ onAuthenticated }: ReadingPageProps) {
   function applyNextPassage(nextPassage: ReadingPassageResponse) {
     startTransition(() => {
       setNextPassage(nextPassage);
+      setMobileWordNoteState({
+        open: false,
+        position: DEFAULT_MOBILE_WORD_NOTE_POSITION,
+      });
       setLocalReadingState({
         passageId: nextPassage.passage.id,
         selectedTokenIds: nextPassage.selectedTokenIds,
@@ -251,9 +396,7 @@ export function ReadingPage({ onAuthenticated }: ReadingPageProps) {
         activePassage.passage.id,
       );
 
-      setStatusMessage(
-        `已沉淀 ${result.savedLemmaCount} 个重点词，继续下一段。`,
-      );
+      setStatusMessage(null);
       applyNextPassage(result.nextPassage);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
@@ -323,9 +466,7 @@ export function ReadingPage({ onAuthenticated }: ReadingPageProps) {
         activePassage.passage.id,
       );
 
-      setStatusMessage(
-        `已沉淀 ${result.savedLemmaCount} 个重点词，继续下一段。`,
-      );
+      setStatusMessage(null);
       applyNextPassage(result.nextPassage);
     }
   }
@@ -362,10 +503,6 @@ export function ReadingPage({ onAuthenticated }: ReadingPageProps) {
             <h2 className="font-[Iowan_Old_Style,Palatino_Linotype,Book_Antiqua,Georgia,serif] text-4xl text-stone-950">
               {activePassage.passage.title}
             </h2>
-            <p className="max-w-2xl text-sm leading-7 text-stone-600">
-              单击段落中的词，将“不认识 /
-              不熟悉”的单词沉淀到下一步的检测结算里。
-            </p>
           </div>
           <div className="rounded-[1.5rem] border border-stone-900/10 bg-[var(--paper-muted)] px-4 py-3 text-sm text-stone-700">
             当前已标记{' '}
@@ -377,7 +514,7 @@ export function ReadingPage({ onAuthenticated }: ReadingPageProps) {
         </div>
 
         <div className="rounded-[1.8rem] bg-[var(--paper-muted)] p-6 shadow-inner">
-          <p className="whitespace-pre-wrap text-lg leading-9 text-stone-900">
+          <p className="reading-passage-text whitespace-pre-wrap text-lg leading-9 text-stone-900">
             {passageParts.map((part) => {
               const token = part.token;
 
@@ -390,13 +527,15 @@ export function ReadingPage({ onAuthenticated }: ReadingPageProps) {
                   key={part.key}
                   aria-pressed={selectedTokenIds.includes(token.id)}
                   className={[
-                    'mx-0.5 rounded-sm border-b px-0.5 py-0 text-left align-baseline transition',
+                    'reading-token-button mx-0.5 rounded-sm border-b px-0.5 py-0 text-left align-baseline transition',
                     selectedTokenIds.includes(token.id)
                       ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-[0_8px_18px_rgba(125,42,28,0.18)]'
                       : 'border-transparent bg-transparent text-stone-900 hover:border-stone-400 hover:bg-white/70',
                   ].join(' ')}
                   type="button"
-                  onClick={() => toggleToken(token.id)}
+                  onClick={(event) =>
+                    toggleToken(token.id, event.currentTarget)
+                  }
                 >
                   {part.text}
                 </button>
@@ -405,19 +544,55 @@ export function ReadingPage({ onAuthenticated }: ReadingPageProps) {
           </p>
         </div>
 
-        <div className="mt-8 flex flex-wrap items-center gap-4">
-          <button
-            className="rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent-dark)] disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={continueMutation.isPending}
-            type="button"
-            onClick={continueReading}
+        {mobileWordNoteState.open && focusedToken ? (
+          <div
+            aria-label="单词详情"
+            className="mobile-word-note fixed z-40 rounded-xl border border-stone-900/10 bg-white/95 p-4 text-sm text-stone-700 shadow-[0_18px_50px_rgba(34,24,18,0.24)] backdrop-blur"
+            ref={mobileWordNoteRef}
+            role="dialog"
+            style={{
+              top: `${mobileWordNoteState.position.top}px`,
+              left: `${mobileWordNoteState.position.left}px`,
+            }}
           >
-            {continueMutation.isPending ? '处理中...' : '下一篇'}
-          </button>
-          {statusMessage ? (
-            <p className="text-sm text-stone-600">{statusMessage}</p>
-          ) : null}
-        </div>
+            <button
+              aria-label="关闭单词详情"
+              className="absolute right-3 top-3 grid h-7 w-7 place-items-center rounded-full border border-stone-900/10 bg-[var(--paper-muted)] text-base leading-none text-stone-500 transition hover:border-[var(--accent)] hover:text-stone-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              type="button"
+              onClick={closeMobileWordNote}
+            >
+              ×
+            </button>
+            <p className="pr-8 text-[0.7rem] uppercase tracking-[0.24em] text-stone-500">
+              Live Note
+            </p>
+            <h3 className="mt-2 pr-8 font-[Iowan_Old_Style,Palatino_Linotype,Book_Antiqua,Georgia,serif] text-2xl leading-tight text-stone-950">
+              {focusedToken.surface}
+            </h3>
+            <div className="mt-3 space-y-1.5 text-xs leading-5 text-stone-600">
+              <p>
+                词性：
+                <span className="font-medium text-stone-900">
+                  {focusedToken.partOfSpeech}
+                </span>
+              </p>
+              <p>
+                释义：
+                <span className="font-medium text-stone-900">
+                  {focusedToken.definitionCn}
+                </span>
+              </p>
+            </div>
+            <div className="mt-3 space-y-2 rounded-lg bg-[var(--paper-muted)] p-3 text-xs leading-5 text-stone-700">
+              <p className="font-medium text-stone-900">
+                {focusedSentenceText}
+              </p>
+              {shouldShowMobileSentenceTranslation ? (
+                <p>{focusedSentenceTranslation}</p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
       </article>
 
       <aside
@@ -460,6 +635,23 @@ export function ReadingPage({ onAuthenticated }: ReadingPageProps) {
         </section>
       </aside>
 
+      <div
+        className="reading-continue-action flex flex-wrap items-center gap-4 xl:col-start-2 xl:row-start-2"
+        data-testid="reading-continue-action"
+      >
+        <button
+          className="rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent-dark)] disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={continueMutation.isPending}
+          type="button"
+          onClick={continueReading}
+        >
+          {continueMutation.isPending ? '处理中...' : '下一篇'}
+        </button>
+        {statusMessage ? (
+          <p className="text-sm text-stone-600">{statusMessage}</p>
+        ) : null}
+      </div>
+
       <aside
         aria-label="Live Note"
         className="space-y-6 xl:sticky xl:top-6 xl:col-start-3 xl:row-start-1 xl:max-h-[calc(100vh-3rem)] xl:w-full xl:max-w-80 xl:justify-self-start xl:overflow-y-auto"
@@ -486,12 +678,13 @@ export function ReadingPage({ onAuthenticated }: ReadingPageProps) {
                 </span>
               </p>
             </div>
-            <div className="rounded-lg bg-[var(--paper-muted)] p-5 text-sm leading-7 text-stone-700">
+            <div className="space-y-3 rounded-lg bg-[var(--paper-muted)] p-5 text-sm leading-7 text-stone-700">
               <p className="font-medium text-stone-900">
                 {focusedToken
-                  ? activePassage.sentences[focusedToken.sentenceIndex]?.text
+                  ? focusedSentenceText
                   : '点击左侧单词后，这里会显示原句。'}
               </p>
+              {focusedToken ? <p>{focusedSentenceTranslation}</p> : null}
             </div>
           </div>
         </section>

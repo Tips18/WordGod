@@ -3,28 +3,8 @@ import { PassageRecord } from '../store/store.types';
 
 export const UNAVAILABLE_TRANSLATION = '翻译暂不可用，请稍后重试。';
 
-const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses';
-
-const translationSchema = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['translations'],
-  properties: {
-    translations: {
-      type: 'array',
-      minItems: 1,
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['index', 'translation'],
-        properties: {
-          index: { type: 'integer', minimum: 0 },
-          translation: { type: 'string', minLength: 1 },
-        },
-      },
-    },
-  },
-} as const;
+const DEEPSEEK_CHAT_COMPLETIONS_URL =
+  'https://api.deepseek.com/chat/completions';
 
 interface RuntimeTranslationPayload {
   translations: Array<{
@@ -33,12 +13,11 @@ interface RuntimeTranslationPayload {
   }>;
 }
 
-interface OpenAiResponsePayload {
-  output_text?: string;
-  output?: Array<{
-    content?: Array<{
-      text?: string;
-    }>;
+interface DeepSeekChatCompletionPayload {
+  choices?: Array<{
+    message?: {
+      content?: string;
+    };
   }>;
   error?: {
     message?: string;
@@ -90,7 +69,7 @@ function createCacheKey(passage: PassageRecord): string {
 }
 
 /**
- * `buildTranslationRequestBody` 构造 Responses API 结构化输出请求体。
+ * `buildTranslationRequestBody` 构造 DeepSeek Chat Completions JSON 请求体。
  */
 function buildTranslationRequestBody(
   passage: PassageRecord,
@@ -102,56 +81,43 @@ function buildTranslationRequestBody(
 
   return {
     model,
-    input: [
+    messages: [
       {
         role: 'system',
         content:
-          '你是考研英语阅读句子翻译助手。只返回符合 schema 的 JSON，不添加解释。',
+          '你是考研英语阅读句子翻译助手。只返回 JSON，不添加解释、Markdown 或额外文本。',
       },
       {
         role: 'user',
         content: [
           '请将下列英文句子翻译为自然、准确、适合考研阅读语境的中文。',
+          '返回格式必须是 {"translations":[{"index":0,"translation":"中文译文"}]}。',
+          'translation 字段必须是中文译文，不得返回英文原句。',
           `标题：${passage.title}`,
           '句子：',
           sentenceLines,
         ].join('\n'),
       },
     ],
-    text: {
-      format: {
-        type: 'json_schema',
-        name: 'word_god_runtime_sentence_translation',
-        strict: true,
-        schema: translationSchema,
-      },
+    response_format: {
+      type: 'json_object',
     },
   };
 }
 
 /**
- * `extractResponseText` 从 OpenAI Responses API 响应中提取文本输出。
+ * `extractResponseText` 从 DeepSeek Chat Completions 响应中提取文本输出。
  */
-function extractResponseText(responseBody: OpenAiResponsePayload): string {
-  if (typeof responseBody.output_text === 'string') {
-    return responseBody.output_text;
+function extractResponseText(
+  responseBody: DeepSeekChatCompletionPayload,
+): string {
+  const content = responseBody.choices?.[0]?.message?.content;
+
+  if (typeof content === 'string' && content.trim()) {
+    return content;
   }
 
-  if (Array.isArray(responseBody.output)) {
-    for (const outputItem of responseBody.output) {
-      if (!Array.isArray(outputItem.content)) {
-        continue;
-      }
-
-      for (const contentItem of outputItem.content) {
-        if (typeof contentItem.text === 'string') {
-          return contentItem.text;
-        }
-      }
-    }
-  }
-
-  throw new Error('OpenAI 响应缺少文本输出');
+  throw new Error('DeepSeek 响应缺少文本输出');
 }
 
 /**
@@ -226,7 +192,7 @@ function applyUnavailableTranslation(passage: PassageRecord): PassageRecord {
 }
 
 /**
- * `PassageTranslator` 在阅读接口返回前为占位译文段落补齐运行时中文翻译。
+ * `PassageTranslator` 在阅读接口返回前通过 DeepSeek 为占位译文段落补齐中文翻译。
  */
 @Injectable()
 export class PassageTranslator {
@@ -244,7 +210,7 @@ export class PassageTranslator {
       return passage;
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.DEEPSEEK_API_KEY;
 
     if (!apiKey) {
       return applyUnavailableTranslation(passage);
@@ -278,13 +244,13 @@ export class PassageTranslator {
   }
 
   /**
-   * `requestTranslation` 调用 OpenAI Responses API 获取段落句子翻译。
+   * `requestTranslation` 调用 DeepSeek Chat Completions API 获取段落句子翻译。
    */
   private async requestTranslation(
     passage: PassageRecord,
     apiKey: string,
   ): Promise<PassageRecord> {
-    const response = await fetch(OPENAI_RESPONSES_URL, {
+    const response = await fetch(DEEPSEEK_CHAT_COMPLETIONS_URL, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -293,14 +259,14 @@ export class PassageTranslator {
       body: JSON.stringify(
         buildTranslationRequestBody(
           passage,
-          process.env.OPENAI_TRANSLATION_MODEL ?? 'gpt-5-mini',
+          process.env.DEEPSEEK_TRANSLATION_MODEL ?? 'deepseek-v4-flash',
         ),
       ),
     });
-    const payload = (await response.json()) as OpenAiResponsePayload;
+    const payload = (await response.json()) as DeepSeekChatCompletionPayload;
 
     if (!response.ok) {
-      throw new Error(payload.error?.message ?? 'OpenAI 翻译请求失败');
+      throw new Error(payload.error?.message ?? 'DeepSeek 翻译请求失败');
     }
 
     const responseText = extractResponseText(payload);

@@ -173,6 +173,11 @@ describe('AppShell behaviors', () => {
 
     expect(within(article).getByText(/theories/)).toBeInTheDocument();
     expect(within(article).getByText(/practice/)).toBeInTheDocument();
+    expect(
+      within(article).queryByText(
+        '单击段落中的词，将“不认识 / 不熟悉”的单词沉淀到下一步的检测结算里。',
+      ),
+    ).not.toBeInTheDocument();
     await userEvent.click(tokenButton);
 
     expect(tokenButton).toHaveAttribute('aria-pressed', 'true');
@@ -349,11 +354,44 @@ describe('AppShell behaviors', () => {
     renderApp(['/']);
 
     const header = await screen.findByRole('banner');
+    const readingLink = within(header).getByRole('link', { name: '阅读检测' });
+    const vocabularyLink = within(header).getByRole('link', { name: '生词本' });
 
     expect(header).toHaveClass('mb-8');
     expect(header).not.toHaveClass('sticky');
     expect(header).not.toHaveClass('top-4');
     expect(header).not.toHaveClass('z-40');
+    expect(readingLink).toHaveClass('bg-[var(--accent)]');
+    expect(readingLink).toHaveClass('!text-white');
+    expect(vocabularyLink).not.toHaveClass('bg-[var(--accent)]');
+    expect(
+      within(header).getByText(
+        '阅读历年真题段落，点击生词展示词义并标记为生词',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(header).queryByText(
+        '使用说明：点击段落里的单词完成标记，点“下一篇”结算到生词本，再进入“生词本”按次数复习。',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders a web header link for downloading the Android APK', async () => {
+    mockGuestSession();
+    mockReadingPassage();
+
+    renderApp(['/']);
+
+    const header = await screen.findByRole('banner');
+    const apkDownloadLink = within(header).getByRole('link', {
+      name: '下载手机版 APK',
+    });
+
+    expect(apkDownloadLink).toHaveAttribute(
+      'href',
+      '/downloads/wordgod.apk',
+    );
+    expect(apkDownloadLink).toHaveAttribute('download', 'wordgod.apk');
   });
 
   it('shows the loading error instead of keeping the passage spinner forever', async () => {
@@ -844,10 +882,16 @@ describe('AppShell behaviors', () => {
 
     renderApp(['/vocabulary']);
 
+    const header = await screen.findByRole('banner');
+    const readingLink = within(header).getByRole('link', { name: '阅读检测' });
+    const vocabularyLink = within(header).getByRole('link', { name: '生词本' });
     const authDialog = await screen.findByRole('dialog', {
       name: '登录 / 注册',
     });
 
+    expect(vocabularyLink).toHaveClass('bg-[var(--accent)]');
+    expect(vocabularyLink).toHaveClass('!text-white');
+    expect(readingLink).not.toHaveClass('bg-[var(--accent)]');
     expect(authDialog).toBeInTheDocument();
     expect(
       within(authDialog).getByText('生词本需要登录后查看。'),
@@ -929,8 +973,23 @@ describe('AppShell behaviors', () => {
 
     const detailLink = await screen.findByRole('link', { name: /obscure/i });
     const items = await screen.findAllByRole('listitem');
+    const wordTitle = screen.getByText('obscure');
+    const wordDefinition = screen.getByText('adj. · 晦涩的');
 
+    expect(screen.queryByText('Priority List')).not.toBeInTheDocument();
     expect(items[0]).toHaveTextContent('obscure');
+    expect(items[0]).toHaveClass('rounded-[1.25rem]', 'p-4', 'sm:p-5');
+    expect(wordTitle).toHaveClass('text-xl', 'sm:text-2xl');
+    expect(wordDefinition).toHaveClass('text-xs', 'leading-6', 'sm:text-sm');
+    expect(screen.getByText('4 次')).toHaveClass(
+      'vocabulary-mark-count-badge',
+      'h-8',
+      'w-12',
+      'shrink-0',
+      'text-[0.7rem]',
+      'sm:h-9',
+      'sm:w-14',
+    );
 
     await userEvent.click(detailLink);
 
